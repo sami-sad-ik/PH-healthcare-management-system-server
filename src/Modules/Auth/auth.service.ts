@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { UserStatus } from "../../generated/prisma/enums";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
+import AppError from "../../ErrorHelpers/AppError";
+import status from "http-status";
+import { tokenUtils } from "../../utils/token";
 
 interface IRegisterPatientPayload {
   name: string;
@@ -25,7 +28,7 @@ const registerPatient = async (
     where: { email },
   });
   if (isExistingUser) {
-    throw new Error("User already exists");
+    throw new AppError(status.BAD_REQUEST, "User already exists");
   }
 
   const response = await auth.api.signUpEmail({
@@ -44,9 +47,12 @@ const registerPatient = async (
   }
   const data = await response.json();
 
-
-
-  if (!data.user) throw new Error("Failed to register patient");
+  if (!data.user) {
+    throw new AppError(
+      status.INTERNAL_SERVER_ERROR,
+      "Failed to register patient",
+    );
+  }
   //  TODO : patient table create after creating patient schema
   try {
     const patient = await prisma.$transaction(async (tx) => {
@@ -64,7 +70,8 @@ const registerPatient = async (
   } catch (error) {
     console.log("Transaction error! :", error);
     await auth.api.deleteUser(data.user.id); // Rollback user creation in Better Auth
-    throw new Error(
+    throw new AppError(
+      status.INTERNAL_SERVER_ERROR,
       "Failed to create patient profile, registration rolled back.",
     );
   }
@@ -76,30 +83,49 @@ const loginUser = async (
   res: Response,
 ) => {
   const { email, password } = payload;
-  const response = await auth.api.signInEmail({
+  const data = await auth.api.signInEmail({
     body: {
       email,
       password,
     },
-    headers : req.headers as Record<string,string>,
-    asResponse :true
+    // headers: req.headers as Record<string, string>,
+    // asResponse: true,
   });
-    const setCookie = response.headers.get("set-cookie");
-  if (setCookie) {
-    res.setHeader("set-cookie", setCookie);
-  }
-
-  const data = await response.json();
+  // const setCookie = response.headers.get("set-cookie");
+  // if (setCookie) {
+  //   res.setHeader("set-cookie", setCookie);
+  // }
+  // const data = await response.json();
 
   if (data.user.status === UserStatus.BLOCKED) {
-    throw new Error("User is blocked!");
+    throw new AppError(status.FORBIDDEN, "User is blocked!");
   }
 
   if (data.user.status === UserStatus.DELETED) {
-    throw new Error("User is deleted!");
+    throw new AppError(status.FORBIDDEN, "User is deleted!");
   }
 
-  return data;
+  const accessToken = tokenUtils.getAccessToken({
+    userId: data.user.id,
+    name: data.user.name,
+    email: data.user.email,
+    role: data.user.role,
+    status: data.user.status,
+    isDeleted: data.user.isDeleted,
+    emailVerified: data.user.emailVerified,
+  });
+
+  const refreshToken = tokenUtils.getRefreshToken({
+    userId: data.user.id,
+    name: data.user.name,
+    email: data.user.email,
+    role: data.user.role,
+    status: data.user.status,
+    isDeleted: data.user.isDeleted,
+    emailVerified: data.user.emailVerified,
+  });
+
+  return { ...data, accessToken, refreshToken };
 };
 
 export const authService = { registerPatient, loginUser };

@@ -1,7 +1,14 @@
-import { speciality } from "./../../generated/prisma/client";
+import { Speciality } from "./../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
+import AppError from "../../ErrorHelpers/AppError";
+import status from "http-status";
 
-const createSpeciality = async (payload: speciality) => {
+const createSpeciality = async (payload: Speciality) => {
+  const specialityExists = await prisma.speciality.findFirst({
+    where: { title: { equals: payload.title, mode: "insensitive" } },
+  });
+
+  if(specialityExists) throw new AppError(status.CONFLICT,`Speciality ${payload.title} already exists!`)
   const speciality = await prisma.speciality.create({
     data: payload,
   });
@@ -21,7 +28,7 @@ const deleteSpeciality = async (id: string) => {
   return result;
 };
 
-const updateSpeciality = async (id: string, payload: speciality) => {
+const updateSpeciality = async (id: string, payload: Speciality) => {
   const result = await prisma.speciality.update({
     where: { id },
     data: payload,

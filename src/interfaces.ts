@@ -8,5 +8,6 @@ export interface TerrResponse {
   success: boolean;
   message: string;
   errSources?: TerrSources[];
+  stack?: string;
   error?: unknown;
 }

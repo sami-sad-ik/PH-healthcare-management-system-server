@@ -3,8 +3,8 @@ import z from "zod";
 import { TerrSources } from "../interfaces";
 
 export const zodErrorHandler = (err: z.ZodError) => {
- const statusCode = status.BAD_REQUEST;
- const message = "Zod validation error";
+  const statusCode = status.BAD_REQUEST;
+  const message = "Zod validation error";
 
   const errSources: TerrSources[] = [];
 
@@ -15,10 +15,10 @@ export const zodErrorHandler = (err: z.ZodError) => {
     });
   });
 
-  return{
-      success: false,
+  return {
+    success: false,
     statusCode,
     message,
-    errSources
-  }
+    errSources,
+  };
 };

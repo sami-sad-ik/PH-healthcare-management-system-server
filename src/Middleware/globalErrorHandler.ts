@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import { envVar } from "../config/env";
 import status from "http-status";
-import z, { unknown } from "zod";
+import z from "zod";
 import { TerrResponse, TerrSources } from "../interfaces";
 import { zodErrorHandler } from "../ErrorHelpers/zodErrorHandler";
+import AppError from "../ErrorHelpers/AppError";
 
 export const globalErrorHandler = (
   err: any,
@@ -17,28 +18,35 @@ export const globalErrorHandler = (
   let errSources: TerrSources[] = [];
   let statusCode: number = status.INTERNAL_SERVER_ERROR;
   let message: string = "Internal Server Error";
+  let stack: string | undefined = undefined;
 
   if (err instanceof z.ZodError) {
     const simplifiedError = zodErrorHandler(err);
-      statusCode = simplifiedError.statusCode,
-      message = simplifiedError.message;
-      errSources = [...simplifiedError.errSources];
+    statusCode = simplifiedError.statusCode;
+    message = simplifiedError.message;
+    errSources = [...simplifiedError.errSources];
+    stack = err.stack;
+  } else if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    message = err.message;
+    stack = err.stack;
+    errSources = [
+      {
+        path: "",
+        message: err.message,
+      },
+    ];
+  } else if (err instanceof Error) {
+    statusCode = status.INTERNAL_SERVER_ERROR;
+    message = err.message;
+    stack = err.stack;
   }
-  // from ai
-  // else if (err instanceof Error) {
-  //   message = err.message;
-  //   errSources = [
-  //     {
-  //       path: "unknown",
-  //       message: err.message,
-  //     },
-  //   ];
-  // }
 
   const errorResponse: TerrResponse = {
     success: false,
-    message ,
+    message,
     errSources,
+    stack: envVar.NODE_ENV === "development" ? stack : undefined,
     error: envVar.NODE_ENV === "development" ? err.message : undefined,
   };
 
