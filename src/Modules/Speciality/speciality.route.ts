@@ -8,4 +8,4 @@ router.get("/", specialityController.getAllSpecialities);
 router.delete("/:id", specialityController.deleteSpeciality);
 router.put("/:id", specialityController.updateSpeciality);
 
-export const specialityRouter = router;
+export const specialityRoute = router;
