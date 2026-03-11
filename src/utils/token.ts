@@ -2,7 +2,6 @@ import { JwtPayload, SignOptions } from "jsonwebtoken";
 import { jwtUtils } from "./jwt";
 import { envVar } from "../config/env";
 import { Response } from "express";
-import ms, { StringValue } from "ms";
 import { cookieUtils } from "./cookie";
 
 const getAccessToken = (payload: JwtPayload) => {
@@ -27,10 +26,10 @@ const setAccessTokenCookie = (res: Response, token: string) => {
   const maxAge = 60 * 60 * 60 * 24;
   cookieUtils.setCookie(res, "accessToken", token, {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
+    secure: false, // Set to true in production
+    sameSite: "lax",
     path: "/",
-    maxAge: Number(maxAge),
+    maxAge: maxAge,
   });
 };
 
@@ -38,10 +37,10 @@ const setRefreshTokenCookie = (res: Response, token: string) => {
   const maxAge = 60 * 60 * 60 * 24 * 7;
   cookieUtils.setCookie(res, "refreshToken", token, {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
+    secure: false, // Set to true in production
+    sameSite: "lax",
     path: "/",
-    maxAge: Number(maxAge),
+    maxAge: maxAge,
   });
 };
 
@@ -49,8 +48,8 @@ const setBetterAuthSessionCookie = (res: Response, token: string) => {
   const maxAge = 60 * 60 * 60 * 24;
   cookieUtils.setCookie(res, "better-auth.session_token", token, {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
+    secure: false, // Set to true in production
+    sameSite: "lax",
     path: "/",
     maxAge: maxAge,
   });

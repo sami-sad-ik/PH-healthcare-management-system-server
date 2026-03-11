@@ -2,10 +2,12 @@ import express, { Request, Response } from "express";
 import { indexRoutes } from "./Routes";
 import { globalErrorHandler } from "./Middleware/globalErrorHandler";
 import { notFound } from "./Middleware/notFound";
-// import cookieParser from "cookie-parser";
+import cookieParser from "cookie-parser";
+
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 // app.all("/api/auth/*splat", toNodeHandler(auth));
 

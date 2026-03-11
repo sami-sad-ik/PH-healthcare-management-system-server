@@ -31,21 +31,21 @@ const registerPatient = async (
     throw new AppError(status.BAD_REQUEST, "User already exists");
   }
 
-  const response = await auth.api.signUpEmail({
+  const data = await auth.api.signUpEmail({
     body: {
       name,
       email,
       password,
     },
-    headers: req.headers as Record<string, string>,
-    asResponse: true,
+    // headers: req.headers as Record<string, string>,
+    // asResponse: true,
   });
 
-  const setCookie = response.headers.get("set-cookie");
-  if (setCookie) {
-    res.setHeader("set-cookie", setCookie);
-  }
-  const data = await response.json();
+  // const setCookie = response.headers.get("set-cookie");
+  // if (setCookie) {
+  //   res.setHeader("set-cookie", setCookie);
+  // }
+  // const data = await response.json();
 
   if (!data.user) {
     throw new AppError(
@@ -66,10 +66,33 @@ const registerPatient = async (
       return patientTx;
     });
 
-    return { ...data, patient };
+      const accessToken = tokenUtils.getAccessToken({
+    userId: data.user.id,
+    name: data.user.name,
+    email: data.user.email,
+    role: data.user.role,
+    status: data.user.status,
+    isDeleted: data.user.isDeleted,
+    emailVerified: data.user.emailVerified,
+  });
+  
+  const refreshToken = tokenUtils.getRefreshToken({
+    userId: data.user.id,
+    name: data.user.name,
+    email: data.user.email,
+    role: data.user.role,
+    status: data.user.status,
+    isDeleted: data.user.isDeleted,
+    emailVerified: data.user.emailVerified,
+  });
+
+    return { ...data, patient ,accessToken ,refreshToken };
   } catch (error) {
     console.log("Transaction error! :", error);
-    await auth.api.deleteUser(data.user.id); // Rollback user creation in Better Auth
+    // Rollback user creation in Better Auth
+    await prisma.user.delete({
+      where: { id: data.user.id },
+    });
     throw new AppError(
       status.INTERNAL_SERVER_ERROR,
       "Failed to create patient profile, registration rolled back.",
@@ -114,7 +137,7 @@ const loginUser = async (
     isDeleted: data.user.isDeleted,
     emailVerified: data.user.emailVerified,
   });
-
+  
   const refreshToken = tokenUtils.getRefreshToken({
     userId: data.user.id,
     name: data.user.name,

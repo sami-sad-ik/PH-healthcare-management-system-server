@@ -7,11 +7,22 @@ import { tokenUtils } from "../../utils/token";
 const registerPatient = catchAsync(async (req, res) => {
   const payload = req.body;
   const result = await authService.registerPatient(payload, req, res);
+  const { accessToken, refreshToken, token, ...rest } = result;
+
+  tokenUtils.setAccessTokenCookie(res, accessToken);
+  tokenUtils.setRefreshTokenCookie(res, refreshToken);
+  tokenUtils.setBetterAuthSessionCookie(res, token!);
+
   sendResponse(res, {
     httpStatusCode: status.OK,
     success: true,
     message: "Patient created successfully",
-    data: result,
+    data: {
+      accessToken,
+      refreshToken,
+      token,
+      ...rest,
+    },
   });
 });
 
