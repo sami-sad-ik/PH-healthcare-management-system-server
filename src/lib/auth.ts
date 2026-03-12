@@ -52,11 +52,11 @@ export const auth = betterAuth({
   },
 
   session: {
-    expiresIn: 60 * 60 * 60 * 24,
-    updatesIn: 60 * 60 * 60 * 24,
+    expiresIn: 60 * 60 * 24,
+    updatesIn: 60 * 60 * 24,
     cookieCache: {
       enabled: true,
-      maxAge: 60 * 60 * 60 * 24,
+      maxAge: 60 * 60 * 24,
     },
   },
 });

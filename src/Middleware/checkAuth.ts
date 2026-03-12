@@ -9,14 +9,12 @@ import { envVar } from "../config/env";
 import { JwtPayload } from "jsonwebtoken";
 
 const checkAuth = (...roles: Role[]) => {
- return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
-              console.log("All cookies:", req.cookies); // 👈 add this temporarily
-              const sessionToken = cookieUtils.getCookie(
-                  req,
-                  "better-auth.session_token",
-                );
-                console.log("Session token:", sessionToken); // 👈 and this
+      const sessionToken = cookieUtils.getCookie(
+        req,
+        "better-auth.session_token",
+      );
       if (!sessionToken) {
         throw new AppError(status.UNAUTHORIZED, "Unauthorized access!");
       }
