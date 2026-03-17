@@ -8,6 +8,22 @@ import { jwtUtils } from "../utils/jwt";
 import { envVar } from "../config/env";
 import { JwtPayload } from "jsonwebtoken";
 
+declare global {
+  namespace Express {
+   export interface Request {
+      user?: {
+        id: string;
+        name: string;
+        email: string;
+        role: Role;
+        status: UserStatus;
+        isDeleted: boolean;
+        emailVerified: boolean;
+      };
+    }
+  }
+}
+
 const checkAuth = (...roles: Role[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -30,6 +46,8 @@ const checkAuth = (...roles: Role[]) => {
         });
         if (sessionExists && sessionExists.user) {
           const user = sessionExists.user;
+
+          req.user = user;
 
           const now = new Date();
           const createdAt = new Date(sessionExists.createdAt);

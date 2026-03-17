@@ -8,8 +8,8 @@ model Speciality {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    isDeleted Boolean   @default(false)
-    deletedAt DateTime?
+    isDeleted          Boolean            @default(false)
+    deletedAt          DateTime?
     doctorSpecialities DoctorSpeciality[]
 
     @@index([isDeleted], name: "speciality_is_deleted_idx")
@@ -17,16 +17,17 @@ model Speciality {
     @@map("specialities")
 }
 
-
 model DoctorSpeciality {
     id String @id @default(uuid(7))
 
     specialityId String
-    doctorId String 
-    speciality Speciality @relation(fields : [specialityId] ,references : [id], onDelete  : Cascade , onUpdate : Cascade)
-    doctor Doctor @relation(fields : [doctorId] ,references : [id], onDelete  : Cascade , onUpdate : Cascade)
-
+    doctorId     String
+    speciality   Speciality @relation(fields: [specialityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    doctor       Doctor     @relation(fields: [doctorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@unique([specialityId, doctorId])
+    @@map("doctor_specialities")
 }

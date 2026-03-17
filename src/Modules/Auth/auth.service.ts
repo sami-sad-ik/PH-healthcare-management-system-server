@@ -55,7 +55,7 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
     });
 
     const accessToken = tokenUtils.getAccessToken({
-      userId: data.user.id,
+      id: data.user.id,
       name: data.user.name,
       email: data.user.email,
       role: data.user.role,
@@ -65,7 +65,7 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
     });
 
     const refreshToken = tokenUtils.getRefreshToken({
-      userId: data.user.id,
+      id: data.user.id,
       name: data.user.name,
       email: data.user.email,
       role: data.user.role,
@@ -106,7 +106,7 @@ const loginUser = async (payload: ILoginUserPayload) => {
   }
 
   const accessToken = tokenUtils.getAccessToken({
-    userId: data.user.id,
+    id: data.user.id,
     name: data.user.name,
     email: data.user.email,
     role: data.user.role,
@@ -116,7 +116,7 @@ const loginUser = async (payload: ILoginUserPayload) => {
   });
 
   const refreshToken = tokenUtils.getRefreshToken({
-    userId: data.user.id,
+    id: data.user.id,
     name: data.user.name,
     email: data.user.email,
     role: data.user.role,

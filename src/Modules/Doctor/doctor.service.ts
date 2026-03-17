@@ -1,8 +1,9 @@
 import status from "http-status";
 import AppError from "../../ErrorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
-import { IAuthUser, IUpdateDoctor } from "./doctor.interface";
+import { IUpdateDoctor } from "./doctor.interface";
 import { Role } from "../../generated/prisma/enums";
+import { IAuthUser } from "../Auth/auth.interface";
 
 const getAllDoctors = async () => {
   const result = await prisma.doctor.findMany({
@@ -45,9 +46,13 @@ const getDoctorById = async (id: string) => {
   const doctor = await prisma.doctor.findUnique({
     where: { id, isDeleted: false },
     include: {
+      user: true,
       specialities: {
         select: { speciality: true },
       },
+      appointments: {orderBy:{ createdAt: "desc"}},
+      doctorSchedules: true,
+      reviews: true,
     },
   });
   if (!doctor) {
@@ -58,6 +63,37 @@ const getDoctorById = async (id: string) => {
     specialities: doctor.specialities.map((s) => s.speciality),
   };
 };
+
+// const getDoctorById = async (id: string) => {
+//     const doctor = await prisma.doctor.findUnique({
+//         where: {
+//             id,
+//             isDeleted: false,
+//         },
+//         include: {
+//             user: true,
+//             specialities: {
+//                 include: {
+//                     speciality: true
+//                 }
+//             },
+//             appointments: {
+//                 include: {
+//                     patient: true,
+//                     schedule: true,
+//                     prescription: true,
+//                 }
+//             },
+//             doctorSchedules: {
+//                 include: {
+//                     schedule: true,
+//                 }
+//             },
+//             reviews: true
+//         }
+//     })
+//     return doctor;
+// }
 
 const deleteDoctor = async (id: string) => {
   const doctor = await prisma.doctor.findUnique({
@@ -75,21 +111,6 @@ const deleteDoctor = async (id: string) => {
   });
 };
 
-/**
- * model DoctorSpeciality {
-    id String @id @default(uuid(7))
-
-    specialityId String
-    doctorId String 
-    speciality Speciality @relation(fields : [specialityId] ,references : [id], onDelete  : Cascade , onUpdate : Cascade)
-    doctor Doctor @relation(fields : [doctorId] ,references : [id], onDelete  : Cascade , onUpdate : Cascade)
-
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-}
- */
-
 const updateDoctor = async (
   id: string,
   payload: IUpdateDoctor,
@@ -105,7 +126,7 @@ const updateDoctor = async (
     throw new AppError(status.FORBIDDEN, "You can only update your profile!");
   }
   const { specialities, ...updateBody } = payload;
-  const result =  await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     await tx.doctor.update({
       where: { id },
       data: updateBody,
@@ -121,16 +142,19 @@ const updateDoctor = async (
     }
     return await tx.doctor.findUnique({
       where: { id },
-      include: { specialities: { select: { speciality: true } } },
+      include: { specialities: { include: { speciality: true } } },
     });
-
-
   });
 
   return {
     ...result,
-    specialities: result?.specialities.map(s=>s.speciality) || []
-  }
+    specialities: result?.specialities.map((s) => s.speciality) || [],
+  };
 };
 
-export const doctorService = { getAllDoctors, getDoctorById, deleteDoctor ,updateDoctor };
+export const doctorService = {
+  getAllDoctors,
+  getDoctorById,
+  deleteDoctor,
+  updateDoctor,
+};

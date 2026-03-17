@@ -15,7 +15,7 @@
   "type": "module",
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",
-    "@prisma/client": "^7.4.2",
+    "@prisma/client": "^7.5.0",
     "@prisma/extension-accelerate": "^3.0.1",
     "better-auth": "^1.5.2",
     "cookie-parser": "^1.4.7",
@@ -33,7 +33,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.3",
     "@types/pg": "^8.18.0",
-    "prisma": "^7.4.2",
+    "prisma": "^7.5.0",
     "typescript": "^5.9.3"
   }
 }
