@@ -8,21 +8,7 @@ import { jwtUtils } from "../utils/jwt";
 import { envVar } from "../config/env";
 import { JwtPayload } from "jsonwebtoken";
 
-declare global {
-  namespace Express {
-   export interface Request {
-      user?: {
-        id: string;
-        name: string;
-        email: string;
-        role: Role;
-        status: UserStatus;
-        isDeleted: boolean;
-        emailVerified: boolean;
-      };
-    }
-  }
-}
+
 
 const checkAuth = (...roles: Role[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -46,8 +32,6 @@ const checkAuth = (...roles: Role[]) => {
         });
         if (sessionExists && sessionExists.user) {
           const user = sessionExists.user;
-
-          req.user = user;
 
           const now = new Date();
           const createdAt = new Date(sessionExists.createdAt);
@@ -78,8 +62,15 @@ const checkAuth = (...roles: Role[]) => {
               "Forbidden access ! you don't have permission to access for this resource",
             );
           }
+
+          req.user = {
+            id : user.id,
+            email : user.email,
+            role : user.role,
+          }
         }
       }
+      
       const accessToken = cookieUtils.getCookie(req, "accessToken");
       if (!accessToken) {
         throw new AppError(status.UNAUTHORIZED, "Unauthorized access!");
