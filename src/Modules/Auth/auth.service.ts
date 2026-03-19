@@ -1,3 +1,4 @@
+import { notFound } from "./../../Middleware/notFound";
 import { UserStatus } from "../../generated/prisma/enums";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
@@ -264,6 +265,62 @@ const logoutUser = async (sessionToken: string) => {
   return result;
 };
 
+const verifyEmail = async (email: string, otp: string) => {
+  const result = await auth.api.verifyEmailOTP({
+    body: {
+      email,
+      otp,
+    },
+  });
+  if (result.status && !result.user.emailVerified) {
+    await prisma.user.update({
+      where: { email },
+      data: { emailVerified: true },
+    });
+  }
+};
+
+const forgotPassword = async (email: string) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return;
+  if (user.isDeleted || user.status === "DELETED") {
+    throw new AppError(status.FORBIDDEN, "User has been deleted!");
+  }
+  if (!user.emailVerified) {
+    throw new AppError(status.BAD_REQUEST, "Your email is not verified");
+  }
+  await auth.api.requestPasswordResetEmailOTP({
+    body: { email },
+  });
+};
+
+const resetPassword = async (
+  email: string,
+  otp: string,
+  newPassword: string,
+) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return;
+  if (user.isDeleted || user.status === "DELETED") {
+    throw new AppError(status.FORBIDDEN, "User has been deleted!");
+  }
+  if (!user.emailVerified) {
+    throw new AppError(status.BAD_REQUEST, "Your email is not verified");
+  }
+  const result = await auth.api.resetPasswordEmailOTP({
+    body: {
+      email,
+      otp,
+      password: newPassword,
+    },
+  });
+  if (result.success) {
+    await prisma.session.deleteMany({
+      where: { userId: user.id },
+    });
+  }
+};
+
 export const authService = {
   registerPatient,
   loginUser,
@@ -271,4 +328,7 @@ export const authService = {
   getNewToken,
   changePassword,
   logoutUser,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
 };
