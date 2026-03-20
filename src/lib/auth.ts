@@ -3,7 +3,6 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 import { Role, UserStatus } from "../generated/prisma/enums";
 import { envVar } from "../config/env";
-import ms, { StringValue } from "ms";
 import { bearer, emailOTP } from "better-auth/plugins";
 import { sendEmail } from "../utils/email";
 // If your Prisma file is located elsewhere, you can change the path
@@ -19,6 +18,24 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+  },
+
+  socialProviders: {
+    google: {
+      clientId: envVar.GOOGLE_CLIENT_ID,
+      clientSecret: envVar.GOOGLE_CLIENT_SECRET,
+
+      mapProfileToUser: () => {
+        return {
+          role: Role.PATIENT,
+          status: UserStatus.ACTIVE,
+          emailVerified: true,
+          needPasswordChange: false,
+          isDeleted: false,
+          deletedAt: null,
+        };
+      },
+    },
   },
 
   trustedOrigins: [envVar.APP_URL! || "http://localhost:5000"],
@@ -61,7 +78,8 @@ export const auth = betterAuth({
       async sendVerificationOTP({ email, otp, type }) {
         if (type === "email-verification") {
           const user = await prisma.user.findUnique({ where: { email } });
-          if (user && !user.emailVerified) {
+          //otp not coming on ignoring verify first time and then login
+          if (user) {
             sendEmail({
               to: email,
               subject: "Verify your email",
@@ -98,6 +116,28 @@ export const auth = betterAuth({
     cookieCache: {
       enabled: true,
       maxAge: 60 * 60 * 24,
+    },
+  },
+
+  advanced: {
+    useSecureCookies: false,
+    cookies: {
+      state: {
+        attributes: {
+          httpOnly: true,
+          secure: true,
+          sameSite: "Lax",
+          path: "/",
+        },
+      },
+      sessionCookies: {
+        attributes: {
+          httpOnly: true,
+          secure: true,
+          sameSite: "Lax",
+          path: "/",
+        },
+      },
     },
   },
 });

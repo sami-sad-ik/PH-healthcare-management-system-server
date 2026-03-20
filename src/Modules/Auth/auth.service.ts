@@ -88,6 +88,19 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 
 const loginUser = async (payload: ILoginUserPayload) => {
   const { email, password } = payload;
+
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+
+  if (existingUser && !existingUser.emailVerified) {
+    await auth.api.sendVerificationOTP({
+      body: { email, type: "email-verification" },
+    });
+    throw new AppError(
+      status.FORBIDDEN,
+      "Email not verified. A new OTP has been sent to your email.",
+    );
+  }
+
   const data = await auth.api.signInEmail({
     body: {
       email,
@@ -233,6 +246,13 @@ const changePassword = async (
     },
   });
 
+  if (session.user.needPasswordChange) {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { needPasswordChange: false },
+    });
+  }
+
   const accessToken = tokenUtils.getAccessToken({
     id: session.user.id,
     name: session.user.name,
@@ -314,12 +334,22 @@ const resetPassword = async (
       password: newPassword,
     },
   });
+
+  if (user.needPasswordChange) {
+    await prisma.user.update({
+      where: { email },
+      data: { needPasswordChange: false },
+    });
+  }
+
   if (result.success) {
     await prisma.session.deleteMany({
       where: { userId: user.id },
     });
   }
 };
+
+const googleLoginSuccess = async () => {};
 
 export const authService = {
   registerPatient,
@@ -331,4 +361,5 @@ export const authService = {
   verifyEmail,
   forgotPassword,
   resetPassword,
+  googleLoginSuccess,
 };

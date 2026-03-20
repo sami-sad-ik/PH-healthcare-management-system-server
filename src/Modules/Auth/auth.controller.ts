@@ -162,6 +162,12 @@ const resetPassword: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const googleLogin = catchAsync(async (req, res) => {});
+
+const googleLoginSuccess = catchAsync(async (req, res) => {});
+
+const handleOAuthError = catchAsync(async (req, res) => {});
+
 export const authController = {
   registerPatient,
   loginUser,
@@ -172,4 +178,7 @@ export const authController = {
   verifyEmail,
   forgotPassword,
   resetPassword,
+  googleLogin,
+  googleLoginSuccess,
+  handleOAuthError,
 };
