@@ -5,7 +5,7 @@ import { prisma } from "../../lib/prisma";
 import AppError from "../../ErrorHelpers/AppError";
 import status from "http-status";
 import { tokenUtils } from "../../utils/token";
-import { IRequestUser } from "../../interfaces/interface";
+import { IRequestUser, Session } from "../../interfaces/interface";
 import { jwtUtils } from "../../utils/jwt";
 import { envVar } from "../../config/env";
 import {
@@ -349,7 +349,41 @@ const resetPassword = async (
   }
 };
 
-const googleLoginSuccess = async () => {};
+const googleLoginSuccess = async (session: Session) => {
+  const isPatientExists = await prisma.patient.findUnique({
+    where: { userId: session.user.id },
+  });
+  if (!isPatientExists) {
+    await prisma.patient.create({
+      data: {
+        userId: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+      },
+    });
+  }
+  const accessToken = tokenUtils.getAccessToken({
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+    role: session.user.role,
+    status: session.user.status,
+    isDeleted: session.user.isDeleted,
+    emailVerified: session.user.emailVerified,
+  });
+
+  const refreshToken = tokenUtils.getRefreshToken({
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+    role: session.user.role,
+    status: session.user.status,
+    isDeleted: session.user.isDeleted,
+    emailVerified: session.user.emailVerified,
+  });
+
+  return { accessToken, refreshToken };
+};
 
 export const authService = {
   registerPatient,

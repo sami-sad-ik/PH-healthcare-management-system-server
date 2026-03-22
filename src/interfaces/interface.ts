@@ -1,4 +1,4 @@
-import { Role } from "../generated/prisma/enums";
+import { Role, UserStatus } from "../generated/prisma/enums";
 
 export interface IRequestUser {
   id: string;
@@ -16,4 +16,31 @@ export interface SendEmailOptions {
     content: Buffer | string;
     contentType: string;
   }[];
+}
+
+export interface Session {
+  session: {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    userId: string;
+    expiresAt: Date;
+    token: string;
+    ipAddress?: string | null | undefined;
+    userAgent?: string | null | undefined;
+  };
+  user: {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    email: string;
+    emailVerified: boolean;
+    name: string;
+    image?: string | null | undefined;
+    role: Role;
+    status: UserStatus;
+    needPasswordChange: boolean;
+    isDeleted: boolean;
+    deletedAt?: Date | null | undefined;
+  };
 }

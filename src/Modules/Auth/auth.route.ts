@@ -13,8 +13,8 @@ router.post("/logout", checkAuth(), authController.logoutUser);
 router.post("/verify-email", authController.verifyEmail);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
-router.post("/google/login", authController.googleLogin);
-router.post("/google/success", authController.googleLoginSuccess);
-router.post("/OAuth/error", authController.handleOAuthError);
+router.get("/google/login", authController.googleLogin);
+router.get("/google/success", authController.googleLoginSuccess);
+router.get("/OAuth/error", authController.handleOAuthError);
 
 export const authRoute = router;

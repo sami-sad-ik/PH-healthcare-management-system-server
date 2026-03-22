@@ -38,7 +38,10 @@ export const auth = betterAuth({
     },
   },
 
-  trustedOrigins: [envVar.APP_URL! || "http://localhost:5000"],
+  trustedOrigins: [
+    envVar.APP_URL! || "http://localhost:5000",
+    envVar.FRONTEND_URL,
+  ],
 
   user: {
     additionalFields: {

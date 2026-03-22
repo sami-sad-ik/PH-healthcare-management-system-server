@@ -15,7 +15,7 @@
 <script>
     const handleRedirect = async () => {
         try {
-            const response = await fetch("<%= betterAuthUrl %>/api/auth/sign-in/social", {
+            const response = await fetch("<%= betterAuthURL %>/api/auth/sign-in/social", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
