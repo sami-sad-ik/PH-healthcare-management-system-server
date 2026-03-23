@@ -237,6 +237,15 @@ const changePassword = async (
   if (!session) {
     throw new AppError(status.UNAUTHORIZED, "Invalid session token");
   }
+  const loggedUser = await prisma.account.findFirst({
+    where: { userId: session.user.id },
+  });
+  if (loggedUser?.providerId === "google") {
+    throw new AppError(
+      status.BAD_REQUEST,
+      "Google logged in user can't change password",
+    );
+  }
 
   const { currentPassword, newPassword } = payload;
   const result = await auth.api.changePassword({
@@ -301,13 +310,28 @@ const verifyEmail = async (email: string, otp: string) => {
 };
 
 const forgotPassword = async (email: string) => {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { accounts: { select: { providerId: true } } },
+  });
   if (!user) return;
+
   if (user.isDeleted || user.status === "DELETED") {
     throw new AppError(status.FORBIDDEN, "User has been deleted!");
   }
+
   if (!user.emailVerified) {
     throw new AppError(status.BAD_REQUEST, "Your email is not verified");
+  }
+
+  const isGoogleLogged = user.accounts.some(
+    (acc) => acc.providerId === "google",
+  );
+  if (isGoogleLogged) {
+    throw new AppError(
+      status.BAD_REQUEST,
+      "This account uses Google Sign-In. Please log in with Google instead.",
+    );
   }
   await auth.api.requestPasswordResetEmailOTP({
     body: { email },
@@ -319,14 +343,28 @@ const resetPassword = async (
   otp: string,
   newPassword: string,
 ) => {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return;
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { accounts: { select: { providerId: true } } },
+  });
+  if (!user) throw new AppError(status.NOT_FOUND, "User not found!");
   if (user.isDeleted || user.status === "DELETED") {
     throw new AppError(status.FORBIDDEN, "User has been deleted!");
   }
   if (!user.emailVerified) {
     throw new AppError(status.BAD_REQUEST, "Your email is not verified");
   }
+
+  const isGoogleLogged = user.accounts.some(
+    (acc) => acc.providerId === "google",
+  );
+  if (isGoogleLogged) {
+    throw new AppError(
+      status.BAD_REQUEST,
+      "This account uses Google Sign-In. Please log in with Google instead.",
+    );
+  }
+
   const result = await auth.api.resetPasswordEmailOTP({
     body: {
       email,
