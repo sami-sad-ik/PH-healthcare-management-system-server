@@ -8,7 +8,11 @@ const createSpeciality = async (payload: Speciality) => {
     where: { title: { equals: payload.title, mode: "insensitive" } },
   });
 
-  if(specialityExists) throw new AppError(status.CONFLICT,`Speciality ${payload.title} already exists!`)
+  if (specialityExists)
+    throw new AppError(
+      status.CONFLICT,
+      `Speciality ${payload.title} already exists!`,
+    );
   const speciality = await prisma.speciality.create({
     data: payload,
   });

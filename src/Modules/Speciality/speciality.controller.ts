@@ -5,7 +5,8 @@ import { sendResponse } from "../../shared/sendResponse";
 import status from "http-status";
 
 const createSpeciality: RequestHandler = catchAsync(async (req, res) => {
-  const payload = req.body;
+  const payload = { ...req.body, icon: req.file?.path };
+
   const result = await specialityService.createSpeciality(payload);
   sendResponse(res, {
     httpStatusCode: status.CREATED,
