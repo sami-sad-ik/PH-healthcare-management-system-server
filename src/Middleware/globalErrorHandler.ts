@@ -5,8 +5,9 @@ import z from "zod";
 import { TerrResponse, TerrSources } from "../interfaces";
 import { zodErrorHandler } from "../ErrorHelpers/zodErrorHandler";
 import AppError from "../ErrorHelpers/AppError";
+import { deleteFileFromCloudinary } from "../config/cloudinary.config";
 
-export const globalErrorHandler = (
+export const globalErrorHandler = async (
   err: any,
   req: Request,
   res: Response,
@@ -15,6 +16,11 @@ export const globalErrorHandler = (
   if (envVar.NODE_ENV === "development") {
     console.error("Error from global error handler :", err);
   }
+
+  if (req.file) {
+    await deleteFileFromCloudinary(req.file.path);
+  }
+
   let errSources: TerrSources[] = [];
   let statusCode: number = status.INTERNAL_SERVER_ERROR;
   let message: string = "Internal Server Error";

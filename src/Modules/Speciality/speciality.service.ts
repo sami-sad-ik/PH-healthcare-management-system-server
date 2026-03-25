@@ -4,6 +4,7 @@ import AppError from "../../ErrorHelpers/AppError";
 import status from "http-status";
 
 const createSpeciality = async (payload: Speciality) => {
+  throw new Error("test error");
   const specialityExists = await prisma.speciality.findFirst({
     where: { title: { equals: payload.title, mode: "insensitive" } },
   });
