@@ -20,6 +20,10 @@ export const globalErrorHandler = async (
   if (req.file) {
     await deleteFileFromCloudinary(req.file.path);
   }
+  if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+    const imgUrl = req.files.map((file) => file.path);
+    await Promise.all(imgUrl.map((url) => deleteFileFromCloudinary(url)));
+  }
 
   let errSources: TerrSources[] = [];
   let statusCode: number = status.INTERNAL_SERVER_ERROR;
