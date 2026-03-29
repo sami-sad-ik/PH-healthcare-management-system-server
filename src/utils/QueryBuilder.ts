@@ -96,4 +96,80 @@ export class QueryBuilder<
     }
     return this;
   }
+
+  filter(): this {
+    const { filterableFields } = this.config;
+    const excludedFields = [
+      "searchTerm",
+      "page",
+      "limit",
+      "sortBy",
+      "sortOrder",
+      "fields",
+      "includes",
+    ];
+    const filterParams: Record<string, unknown> = {};
+
+    Object.keys(this.queryParams).forEach((key) => {
+      if (excludedFields.includes(key)) {
+        //! confusion : if i can write this?? filterParams.key = this.queryParams.key;
+        filterParams[key] = this.queryParams[key];
+      }
+    });
+
+    const queryWhere = this.query.where as Record<string, unknown>;
+    const countQueryWhere = this.countQuery.where as Record<string, unknown>;
+
+    Object.keys(filterParams).forEach((key) => {
+      const value = filterParams[key];
+      if (value === undefined || value === "") {
+        return;
+      }
+      // ! confusion : why here not !filterableFields.includes(key)
+      const isAllowedField =
+        !filterableFields ||
+        filterableFields.length === 0 ||
+        filterableFields.includes(key);
+      if (isAllowedField) {
+        return;
+      }
+
+      if (key.includes(".")) {
+        const parts = key.split(".");
+
+        if (parts.length === 2) {
+          const [relation, nestedfield] = parts;
+          // ! confusion : why not returned like search
+          // return {
+          //   [relation]: {
+          //     [nestedField]: stringFilter,
+          //  },
+          // };
+          queryWhere[relation] = {
+            [nestedfield]: value,
+          };
+          countQueryWhere[relation] = {
+            [nestedfield]: value,
+          };
+        } else if (parts.length === 3) {
+          const [relation, nestedRelation, nestedField] = parts;
+          queryWhere[relation] = {
+            [nestedRelation]: {
+              [nestedField]: value,
+            },
+          };
+          countQueryWhere[relation] = {
+            [nestedRelation]: {
+              [nestedField]: value,
+            },
+          };
+        } else {
+          queryWhere[key] = value;
+          countQueryWhere[key] = value;
+        }
+      }
+    });
+
+    return this;
+  }
 }
