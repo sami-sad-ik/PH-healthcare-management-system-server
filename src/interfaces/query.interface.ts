@@ -44,6 +44,7 @@ export interface IQueryConfig {
 }
 
 export interface PrismaStringFilter {
+  contains?: string;
   startsWith?: string;
   endsWith?: string;
   mode?: "insensitive" | "default";
@@ -55,6 +56,18 @@ export interface PrismaStringFilter {
   gt?: string;
   gte?: string;
   not?: string;
+}
+
+export interface PrismaNumberFilter {
+  model?: number;
+  equals?: number;
+  in?: number[];
+  notIn?: number[];
+  lt?: number;
+  lte?: number;
+  gt?: number;
+  gte?: number;
+  not?: PrismaStringFilter | number;
 }
 
 export interface PrismaWhereConditions {

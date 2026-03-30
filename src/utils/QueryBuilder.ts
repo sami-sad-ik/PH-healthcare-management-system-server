@@ -4,6 +4,7 @@ import {
   IQueryParams,
   PrismaCountArgs,
   PrismaFindManyArgs,
+  PrismaNumberFilter,
   PrismaStringFilter,
   PrismaWhereConditions,
 } from "../interfaces/query.interface";
@@ -168,8 +169,71 @@ export class QueryBuilder<
           countQueryWhere[key] = value;
         }
       }
+      if (typeof value === "object" && !Array.isArray(value)) {
+        queryWhere[key] = this.parseFilterValue(value);
+        countQueryWhere[key] = this.parseFilterValue(value);
+        return;
+      }
+      queryWhere[key] = this.parseFilterValue(value);
+      countQueryWhere[key] = this.parseFilterValue(value);
     });
 
     return this;
+  }
+  private parseFilterValue(value: unknown): unknown {
+    if (value === "true") {
+      return true;
+    }
+    if (value === "false") {
+      return false;
+    }
+    //! confusion about the isNaN fundamental like how it works
+    if (typeof value === "string" && !isNaN(Number(value)) && value !== "") {
+      return Number(value);
+    }
+    if (Array.isArray(value)) {
+      return { in: value.map((item) => this.parseFilterValue(item)) }; //! confusion : why map why not foreach like before
+    }
+    return value;
+  }
+  //! confusion : parseRangeFilter is not used anywhere
+  private parseRangeFilter(
+    value: Record<string, string | number>,
+  ): PrismaNumberFilter | PrismaStringFilter | Record<string, string | number> {
+    const rangeQuery: Record<string, string | number> = {};
+
+    Object.keys(value).forEach((operator) => {
+      const operatorValue = value[operator];
+      const parsedValue =
+        typeof operatorValue === "string" && !isNaN(Number(operatorValue))
+          ? Number(operatorValue)
+          : operatorValue;
+
+      //!confusion : why switch case why not if else ... my fundamental is not clear how switch case works!!
+      switch (operator) {
+        case "lt":
+        case "lte":
+        case "gt":
+        case "gte":
+        case "equals":
+        case "not":
+        case "contains":
+        case "startsWith":
+        case "endsWith":
+          rangeQuery[operator] = parsedValue;
+          break;
+        case "in":
+        case "notIn":
+          if (Array.isArray(operatorValue)) {
+            rangeQuery[operator] = operatorValue;
+          } else {
+            rangeQuery[operator] = parsedValue;
+          }
+          break;
+        default:
+          break;
+      }
+    });
+    return Object.keys(rangeQuery).length > 0 ? rangeQuery : value;
   }
 }
