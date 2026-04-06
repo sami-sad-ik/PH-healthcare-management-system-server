@@ -91,6 +91,7 @@ const loginUser = async (payload: ILoginUserPayload) => {
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
 
+  console.log(existingUser);
   if (existingUser && !existingUser.emailVerified) {
     await auth.api.sendVerificationOTP({
       body: { email, type: "email-verification" },
@@ -100,6 +101,12 @@ const loginUser = async (payload: ILoginUserPayload) => {
       "Email not verified. A new OTP has been sent to your email.",
     );
   }
+
+  // if(existingUser && existingUser.needPasswordChange){
+  //   await auth.api.sendVerificationOTP({
+  //     body: { email, type: "password-change" },
+  //   });
+  // }
 
   const data = await auth.api.signInEmail({
     body: {
