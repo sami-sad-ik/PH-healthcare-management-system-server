@@ -10,6 +10,7 @@ import {
   doctorFilterableFields,
   doctorSearchableFields,
 } from "./doctor.constant";
+import { Doctor, Prisma } from "../../generated/prisma/client";
 
 const getAllDoctors = async (query: IQueryParams) => {
   // const result = await prisma.doctor.findMany({
@@ -45,10 +46,16 @@ const getAllDoctors = async (query: IQueryParams) => {
   // }));
   // return doctors;
 
-  const queryBuilder = new QueryBuilder(prisma.doctor, query, {
+  const queryBuilder = new QueryBuilder<
+    Doctor,
+    Prisma.DoctorWhereInput,
+    Prisma.DoctorInclude
+  >(prisma.doctor, query, {
     searchableFields: doctorSearchableFields,
     filterableFields: doctorFilterableFields,
   });
+
+  const result = await queryBuilder.search().filter().where({});
 };
 
 const getDoctorById = async (id: string) => {

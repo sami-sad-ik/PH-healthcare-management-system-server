@@ -47,15 +47,16 @@ export class QueryBuilder<
     if (searchTerm && searchableFields && searchableFields.length > 0) {
       const searchConditions: Record<string, unknown>[] = searchableFields.map(
         (field) => {
+          const stringFilter: PrismaStringFilter = {
+            contains: searchTerm,
+            mode: "insensitive" as const,
+          };
+
           if (field.includes(".")) {
             const parts = field.split(".");
             // search when field are 2 or 3 lair nested
             if (parts.length === 2) {
               const [relation, nestedField] = parts;
-              const stringFilter: PrismaStringFilter = {
-                contains: searchTerm,
-                mode: "insensitive" as const,
-              };
               return {
                 [relation]: {
                   [nestedField]: stringFilter,
@@ -63,10 +64,6 @@ export class QueryBuilder<
               };
             } else if (parts.length === 3) {
               const [relation, nestedRelation, nestedField] = parts;
-              const stringFilter: PrismaStringFilter = {
-                contains: searchTerm,
-                mode: "insensitive" as const,
-              };
               return {
                 [relation]: {
                   [nestedRelation]: {
@@ -75,17 +72,11 @@ export class QueryBuilder<
                 },
               };
             }
-            //direct field search
-            else {
-              const stringFilter: PrismaStringFilter = {
-                contains: searchTerm,
-                mode: "insensitive" as const,
-              };
-              return {
-                [field]: stringFilter,
-              };
-            }
           }
+
+          return {
+            [field]: stringFilter,
+          };
         },
       );
       const whereConditions = this.query.where as PrismaWhereConditions;
@@ -113,7 +104,7 @@ export class QueryBuilder<
     const filterParams: Record<string, unknown> = {};
 
     Object.keys(this.queryParams).forEach((key) => {
-      if (excludedFields.includes(key)) {
+      if (!excludedFields.includes(key)) {
         filterParams[key] = this.queryParams[key];
       }
     });
@@ -130,7 +121,7 @@ export class QueryBuilder<
         !filterableFields ||
         filterableFields.length === 0 ||
         filterableFields.includes(key);
-      if (isAllowedField) {
+      if (!isAllowedField) {
         return;
       }
 
@@ -242,7 +233,7 @@ export class QueryBuilder<
     return this;
   }
 
-  field(): this {
+  fields(): this {
     const fieldsParam = this.queryParams.fields;
     if (fieldsParam && typeof fieldsParam === "string") {
       const fieldsArray = fieldsParam?.split(",").map((field) => field.trim());
@@ -277,14 +268,14 @@ export class QueryBuilder<
 
   dynamicInclude(
     includeConfig: Record<string, unknown>,
-    defaultInclude: string[],
+    defaultInclude?: string[],
   ): this {
     if (this.selectedFields) {
       return this;
     }
     const result: Record<string, unknown> = {};
 
-    defaultInclude.forEach((field) => {
+    defaultInclude?.forEach((field) => {
       if (includeConfig[field]) {
         result[field] = includeConfig[field];
       }
@@ -349,6 +340,10 @@ export class QueryBuilder<
     return await this.model.count(
       this.countQuery as Parameters<typeof this.model.count>[0],
     );
+  }
+
+  getQuery(): PrismaFindManyArgs {
+    return this.query;
   }
 
   private deepMerge(
