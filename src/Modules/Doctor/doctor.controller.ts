@@ -4,14 +4,17 @@ import { sendResponse } from "../../shared/sendResponse";
 import { doctorService } from "./doctor.service";
 import status from "http-status";
 import { IAuthUser } from "../Auth/auth.interface";
+import { IQueryParams } from "../../interfaces/query.interface";
 
 const getAllDoctors: RequestHandler = catchAsync(async (req, res) => {
-  const result = await doctorService.getAllDoctors();
+  const query = req.query;
+  const result = await doctorService.getAllDoctors(query as IQueryParams);
   sendResponse(res, {
     httpStatusCode: status.OK,
     success: true,
     message: "Retrieved all doctors successfully",
-    data: result,
+    data: result.data,
+    meta: result.meta,
   });
 });
 

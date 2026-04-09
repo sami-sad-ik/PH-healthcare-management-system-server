@@ -78,11 +78,11 @@ export interface PrismaWhereConditions {
 }
 
 export interface IQueryResult<T> {
-  data : T[];
-  meta : {
-    page : Number;
-    limit : Number;
-    total : Number;
-    totalPages : Number;
-  }
+  data: T[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }

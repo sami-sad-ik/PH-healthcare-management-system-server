@@ -22,7 +22,7 @@ export class QueryBuilder<
   private limit: number = 1;
   private sortBy: string = "createdAt";
   private sortOrder: "asc" | "desc" = "desc";
-  private selectedFields: Record<string, boolean | undefined>;
+  private selectedFields: Record<string, boolean> | undefined;
 
   constructor(
     private model: IPrismaModelDelegate,
@@ -66,8 +66,10 @@ export class QueryBuilder<
               const [relation, nestedRelation, nestedField] = parts;
               return {
                 [relation]: {
-                  [nestedRelation]: {
-                    [nestedField]: stringFilter,
+                  some: {
+                    [nestedRelation]: {
+                      [nestedField]: stringFilter,
+                    },
                   },
                 },
               };
@@ -99,7 +101,7 @@ export class QueryBuilder<
       "sortBy",
       "sortOrder",
       "fields",
-      "includes",
+      "include",
     ];
     const filterParams: Record<string, unknown> = {};
 
@@ -121,9 +123,6 @@ export class QueryBuilder<
         !filterableFields ||
         filterableFields.length === 0 ||
         filterableFields.includes(key);
-      if (!isAllowedField) {
-        return;
-      }
 
       if (key.includes(".")) {
         const parts = key.split(".");
@@ -140,42 +139,33 @@ export class QueryBuilder<
             countQueryWhere[relation] = {};
           }
 
-          queryWhere[relation] = {
-            [nestedfield]: value,
-          };
-          countQueryWhere[relation] = {
-            [nestedfield]: value,
-          };
-          return;
-        } else if (parts.length === 3) {
-          const [relation, nestedRelation, nestedField] = parts;
+          const queryRelation = queryWhere[relation] as Record<string, unknown>;
+          const countQueryRelation = countQueryWhere[relation] as Record<
+            string,
+            unknown
+          >;
 
-          if (!queryWhere[relation]) {
-            queryWhere[relation] = {};
-            countQueryWhere[relation] = {};
-          }
-
-          queryWhere[relation] = {
-            [nestedRelation]: {
-              [nestedField]: value,
-            },
-          };
-          countQueryWhere[relation] = {
-            [nestedRelation]: {
-              [nestedField]: value,
-            },
-          };
+          queryRelation[nestedfield] = this.parseFilterValue(value);
+          countQueryRelation[nestedfield] = this.parseFilterValue(value);
           return;
-        } else {
-          queryWhere[key] = value;
-          countQueryWhere[key] = value;
         }
       }
-      if (typeof value === "object" && !Array.isArray(value)) {
-        queryWhere[key] = this.parseFilterValue(value);
-        countQueryWhere[key] = this.parseFilterValue(value);
+
+      if (!isAllowedField) {
         return;
       }
+
+      //rangefilter parsing
+      if (typeof value === "object" && !Array.isArray(value)) {
+        queryWhere[key] = this.parseRangeFilter(
+          value as Record<string, string | number>,
+        );
+        countQueryWhere[key] = this.parseRangeFilter(
+          value as Record<string, string | number>,
+        );
+        return;
+      }
+      //direct value parsing
       queryWhere[key] = this.parseFilterValue(value);
       countQueryWhere[key] = this.parseFilterValue(value);
     });
@@ -222,6 +212,10 @@ export class QueryBuilder<
               [nestedField]: sortOrder,
             },
           },
+        };
+      } else {
+        this.query.orderBy = {
+          [sortBy]: sortOrder,
         };
       }
     } else {
@@ -370,6 +364,8 @@ export class QueryBuilder<
         } else {
           result[key] = source[key];
         }
+      } else {
+        result[key] = source[key];
       }
     }
     return result;
@@ -382,16 +378,15 @@ export class QueryBuilder<
     if (value === "false") {
       return false;
     }
-    //! confusion about the isNaN fundamental like how it works
     if (typeof value === "string" && !isNaN(Number(value)) && value !== "") {
       return Number(value);
     }
     if (Array.isArray(value)) {
-      return { in: value.map((item) => this.parseFilterValue(item)) }; //! confusion : why map why not foreach like before
+      return { in: value.map((item) => this.parseFilterValue(item)) };
     }
     return value;
   }
-  // confusion : parseRangeFilter is not used anywhere
+
   private parseRangeFilter(
     value: Record<string, string | number>,
   ): PrismaNumberFilter | PrismaStringFilter | Record<string, string | number> {
@@ -404,7 +399,6 @@ export class QueryBuilder<
           ? Number(operatorValue)
           : operatorValue;
 
-      //!confusion : why switch case why not if else ... my fundamental is not clear how switch case works!!
       switch (operator) {
         case "lt":
         case "lte":
