@@ -89,7 +89,7 @@ const getScheduleById = async (id: string) => {
   return schedule;
 };
 
-const updateSchedule = async (id: string,payload: IUpdateSchedule) => {
+const updateSchedule = async (id: string, payload: IUpdateSchedule) => {
   const { startDate, endDate, startTime, endTime } = payload;
   const startDateTime = new Date(
     addMinutes(
@@ -100,9 +100,33 @@ const updateSchedule = async (id: string,payload: IUpdateSchedule) => {
       Number(startTime?.split(":")[1]),
     ),
   );
+  const endDateTime = new Date(
+    addMinutes(
+      addHours(
+        `${format(new Date(endDate), "yyyy-MM-dd")}`,
+        Number(endTime?.split(":")[0]),
+      ),
+      Number(endTime?.split(":")[1]),
+    ),
+  );
+
+  const updatedSchedule = await prisma.schedule.update({
+    where: { id },
+    data: {
+      startDateTime,
+      endDateTime,
+    },
+  });
+
+  return updateSchedule;
 };
 
-const deleteSchedule = async () => {};
+const deleteSchedule = async (id: string) => {
+  const schedule = await prisma.schedule.delete({
+    where: { id },
+  });
+  return schedule;
+};
 
 export const scheduleService = {
   createSchedule,
