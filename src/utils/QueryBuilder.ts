@@ -123,7 +123,7 @@ export class QueryBuilder<
         !filterableFields ||
         filterableFields.length === 0 ||
         filterableFields.includes(key);
-
+        
       if (key.includes(".")) {
         const parts = key.split(".");
 

@@ -1,17 +1,13 @@
 model Schedule {
     id        String   @id @default(uuid(7))
-    startDate DateTime
-    endDate   DateTime
-    startTime String
-    endTime   String
+    startDateTime DateTime
+    endDateTime   DateTime
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     doctorSchedules DoctorSchedule[]
     appointments Appointment[]
 
-    @@index([startDate], name: "schedule_start_date_idx")
-    @@index([endDate], name: "schedule_end_date_idx")
     @@map("schedules")
 }
 
