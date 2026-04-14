@@ -2,6 +2,7 @@ import status from "http-status";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { doctorScheduleService } from "./doctorSchedule.service";
+import { IQueryParams } from "../../interfaces/query.interface";
 
 const createDoctorSchedule = catchAsync(async (req, res) => {
   const user = req.user;
@@ -18,13 +19,33 @@ const createDoctorSchedule = catchAsync(async (req, res) => {
   });
 });
 
-const getAllDoctorSchedule = catchAsync(async (req, res) => {
-  const result = await doctorScheduleService.getAllDoctorSchedule();
+const getMyDoctorSchedule = catchAsync(async (req, res) => {
+  const user = req.user;
+  const query = req.query;
+  const result = await doctorScheduleService.getMyDoctorSchedule(
+    user,
+    query as IQueryParams,
+  );
   sendResponse(res, {
     httpStatusCode: status.OK,
     success: true,
-    message: "Retrieved all doctor schedules successfully",
-    data: result,
+    message: "Retrieved your schedules successfully",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
+const getAllDoctorSchedule = catchAsync(async (req, res) => {
+  const query = req.query;
+  const result = await doctorScheduleService.getAllDoctorSchedule(
+    query as IQueryParams,
+  );
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Retrieved doctor schedules successfully",
+    data: result.data,
+    meta: result.meta,
   });
 });
 
@@ -58,7 +79,11 @@ const updateDoctorSchedule = catchAsync(async (req, res) => {
 
 const deleteDoctorschedule = catchAsync(async (req, res) => {
   const id = req.params.id;
-  const result = await doctorScheduleService.deleteDoctorSchedule(id as string);
+  const user = req.user;
+  const result = await doctorScheduleService.deleteDoctorSchedule(
+    id as string,
+    user,
+  );
   sendResponse(res, {
     httpStatusCode: status.OK,
     success: true,
@@ -66,3 +91,12 @@ const deleteDoctorschedule = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+export const doctorScheduleController = {
+  createDoctorSchedule,
+  getMyDoctorSchedule,
+  getAllDoctorSchedule,
+  getDoctorScheduleById,
+  updateDoctorSchedule,
+  deleteDoctorschedule,
+};
