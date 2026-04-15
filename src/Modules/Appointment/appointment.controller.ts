@@ -1,0 +1,64 @@
+import status from "http-status";
+import { catchAsync } from "../../shared/catchAsync";
+import { sendResponse } from "../../shared/sendResponse";
+import { appointmentService } from "./appointment.service";
+
+const bookAppointment = catchAsync(async (req, res) => {
+  const payload = req.body;
+  const user = req.user;
+  const result = await appointmentService.bookAppointment(payload, user);
+  sendResponse(res, {
+    httpStatusCode: status.CREATED,
+    success: true,
+    message: "Appointment booked successfully",
+    data: result,
+  });
+});
+
+const getMyAppointments = catchAsync(async (req, res) => {
+  const result = await appointmentService.getMyAppointments();
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Appointments retrieved successfully",
+    data: result,
+  });
+});
+
+const getSingleAppointment = catchAsync(async (req, res) => {
+  const result = await appointmentService.getSingleAppointment();
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Appointment retrieved successfully",
+    data: result,
+  });
+});
+
+const getAllAppointments = catchAsync(async (req, res) => {
+  const result = await appointmentService.getAllAppointments();
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "All appointments retrieved successfully",
+    data: result,
+  });
+});
+
+const changeAppointmentStatus = catchAsync(async (req, res) => {
+  const result = await appointmentService.changeAppointmentStatus();
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Appointment status changed successfully",
+    data: result,
+  });
+});
+
+export const appointmentController = {
+  bookAppointment,
+  getMyAppointments,
+  getSingleAppointment,
+  getAllAppointments,
+  changeAppointmentStatus,
+};
