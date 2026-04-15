@@ -12,3 +12,6 @@ router.get(
 );
 router.put("/:id", doctorScheduleController.updateDoctorSchedule);
 router.delete("/:id", doctorScheduleController.deleteDoctorschedule);
+
+
+export const doctorScheduleRoute = router;

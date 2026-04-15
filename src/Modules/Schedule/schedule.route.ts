@@ -21,3 +21,5 @@ router.patch(
   scheduleController.updateSchedule,
 );
 router.delete("/:id", scheduleController.deleteSchedule);
+
+export const scheduleRoute = router;
