@@ -27,7 +27,12 @@ const getMyAppointments = catchAsync(async (req, res) => {
 });
 
 const getSingleAppointment = catchAsync(async (req, res) => {
-  const result = await appointmentService.getSingleAppointment();
+  const id = req.params.id;
+  const user = req.user;
+  const result = await appointmentService.getSingleAppointment(
+    id as string,
+    user,
+  );
   sendResponse(res, {
     httpStatusCode: status.OK,
     success: true,

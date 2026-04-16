@@ -133,11 +133,11 @@ const getSingleAppointment = async (
 
 const getAllAppointments = async () => {};
 
-const changeAppointmentStatus = async (
+const changeAppointmentStatus = async () =>
   // appointmentId: string,
   // appointmentStatus: AppointmentStatus,
   // user: IRequestUser,
-) => {};
+  {};
 
 export const appointmentService = {
   bookAppointment,
