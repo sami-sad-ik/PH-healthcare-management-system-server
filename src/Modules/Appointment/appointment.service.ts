@@ -3,6 +3,8 @@ import { IRequestUser } from "../../interfaces/interface";
 import { prisma } from "../../lib/prisma";
 import { IBookAppointmentPayload } from "./appointment.interface";
 import { AppointmentStatus } from "../../generated/prisma/enums";
+import { stripe } from "../../config/stripe.config";
+import { envVar } from "../../config/env";
 
 const bookAppointment = async (
   payload: IBookAppointmentPayload,
@@ -56,6 +58,38 @@ const bookAppointment = async (
     });
 
     //todo : payment integration will be here
+    const transactionId = String(uuidv7());
+    const paymentData = await tx.payment.create({
+      data: {
+        appointmentId: appointmentData.id,
+        amount: doctorData.appointmentFee,
+        transactionId,
+      },
+    });
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: "bdt",
+            product_data: {
+              name: `Appointment with Dr. ${doctorData.name}`,
+            },
+            unit_amount: doctorData.appointmentFee * 120,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        appointmentId: appointmentData.id,
+        paymentId: paymentData.id,
+      },
+      success_url: `${envVar.FRONTEND_URL}/dashboard/payment/payment-success`,
+      cancel_url: `${envVar.FRONTEND_URL}/dashboard/payment`,
+    });
+
     return appointmentData;
   });
   return result;
