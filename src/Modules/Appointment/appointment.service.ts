@@ -6,6 +6,7 @@ import { AppointmentStatus } from "../../generated/prisma/enums";
 import { stripe } from "../../config/stripe.config";
 import { envVar } from "../../config/env";
 
+// pay now implementation
 const bookAppointment = async (
   payload: IBookAppointmentPayload,
   user: IRequestUser,
@@ -90,9 +91,72 @@ const bookAppointment = async (
       cancel_url: `${envVar.FRONTEND_URL}/dashboard/payment`,
     });
 
+    return {
+      appointmentData,
+      paymentData,
+      paymentUrl: session.url,
+    };
+  });
+  return {
+    appointment: result.appointmentData,
+    payment: result.paymentData,
+    paymentUrl: result.paymentUrl,
+  };
+};
+
+//pay later implementation
+const bookAppointmentWithPayLater = async (
+  payload: IBookAppointmentPayload,
+  user: IRequestUser,
+) => {
+  const patientData = await prisma.patient.findUniqueOrThrow({
+    where: {
+      userId: user.id,
+    },
+  });
+  const doctorData = await prisma.doctor.findUniqueOrThrow({
+    where: {
+      id: payload.doctorId,
+      isDeleted: false,
+    },
+  });
+
+  const schedule = await prisma.schedule.findUniqueOrThrow({
+    where: { id: payload.scheduleId },
+  });
+  const doctorSchedule = await prisma.doctorSchedule.findUniqueOrThrow({
+    where: {
+      doctorId_scheduleId: {
+        doctorId: doctorData.id,
+        scheduleId: schedule.id,
+      },
+    },
+  });
+  const videoCallingId = String(uuidv7());
+
+  const result = await prisma.$transaction(async (tx) => {
+    const appointmentData = await tx.appointment.create({
+      data: {
+        doctorId: doctorData.id,
+        patientId: patientData.id,
+        scheduleId: doctorSchedule.scheduleId,
+        videoCallingId,
+      },
+    });
+    await tx.doctorSchedule.update({
+      where: {
+        doctorId_scheduleId: {
+          doctorId: payload.doctorId,
+          scheduleId: payload.scheduleId,
+        },
+      },
+      data: {
+        isBooked: true,
+      },
+    });
     return appointmentData;
   });
-  return result;
+  return { appointment: result };
 };
 
 const getMyAppointments = async (user: IRequestUser) => {
