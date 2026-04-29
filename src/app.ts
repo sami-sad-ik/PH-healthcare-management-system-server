@@ -9,6 +9,9 @@ import path from "path";
 import cors from "cors";
 import { envVar } from "./config/env";
 import qs from "qs";
+import { paymentController } from "./Modules/Payment/payment.controller";
+import cron from "node-cron";
+import { appointmentService } from "./Modules/Appointment/appointment.service";
 
 const app = express();
 
@@ -17,10 +20,11 @@ app.set("query parser", (str: string) => qs.parse(str));
 app.set("view engine", "ejs");
 app.set("views", path.resolve(process.cwd(), `src/templates`));
 
-app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
-  console.log("Webhook received!", req.body);
-  res.status(200).json({ received: true });
-});
+app.post(
+  "/webhook",
+  express.raw({ type: "application/json" }),
+  paymentController.handlerStripeWebhookEvent,
+);
 
 app.use(
   cors({
@@ -41,6 +45,15 @@ app.use("/api/auth", toNodeHandler(auth));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
+
+cron.schedule("* * * * *", async () => {
+  try {
+    console.log("Cron job executed");
+    await appointmentService.cancelAppointment();
+  } catch (error) {
+    console.error("Error executing cron job:", error);
+  }
+});
 
 app.use("/api/v1", indexRoutes);
 

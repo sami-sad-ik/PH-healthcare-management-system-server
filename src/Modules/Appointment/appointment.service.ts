@@ -219,6 +219,56 @@ const initiatePayment = async (appointmentId: string, user: IRequestUser) => {
   });
 };
 
+//cancel appointment
+const cancelAppointment = async () => {
+  const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+  const unpaidAppointments = await prisma.appointment.findMany({
+    where: {
+      // status: AppointmentStatus.SCHEDULED,
+      createdAt: {
+        lte: thirtyMinAgo,
+      },
+      paymentStatus: PaymentStatus.UNPAID,
+    },
+  });
+  const appointmentToCancel = unpaidAppointments.map(
+    (appointment) => appointment.id,
+  );
+  await prisma.$transaction(async (tx) => {
+    await tx.appointment.updateMany({
+      where: {
+        id: {
+          in: appointmentToCancel,
+        },
+      },
+      data: {
+        status: AppointmentStatus.CANCELLED,
+      },
+    });
+    await tx.payment.deleteMany({
+      where: {
+        appointmentId: {
+          in: appointmentToCancel,
+        },
+      },
+    });
+
+    for (const unpaidAppointment of unpaidAppointments) {
+      await tx.doctorSchedule.update({
+        where: {
+          doctorId_scheduleId: {
+            doctorId: unpaidAppointment.doctorId,
+            scheduleId: unpaidAppointment.scheduleId,
+          },
+        },
+        data: {
+          isBooked: false,
+        },
+      });
+    }
+  });
+};
+
 const getMyAppointments = async (user: IRequestUser) => {
   const patientData = await prisma.patient.findUnique({
     where: { userId: user.id },
@@ -301,6 +351,7 @@ export const appointmentService = {
   bookAppointment,
   bookAppointmentWithPayLater,
   initiatePayment,
+  cancelAppointment,
   getMyAppointments,
   getSingleAppointment,
   getAllAppointments,
