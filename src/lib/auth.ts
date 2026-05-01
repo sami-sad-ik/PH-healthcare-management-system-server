@@ -82,7 +82,12 @@ export const auth = betterAuth({
         if (type === "email-verification") {
           const user = await prisma.user.findUnique({ where: { email } });
           //otp not coming on ignoring verify first time and then login
-          if (user) {
+          if (!user) {
+            console.error(
+              `User not found for email: ${email}, can't send verification otp.`,
+            );
+          }
+          if (user && !user.emailVerified) {
             sendEmail({
               to: email,
               subject: "Verify your email",
