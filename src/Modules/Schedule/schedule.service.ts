@@ -10,6 +10,8 @@ import {
   scheduleIncludeConfig,
   scheduleSearchableFields,
 } from "./schedule.constant";
+import AppError from "../../ErrorHelpers/AppError";
+import status from "http-status";
 
 const createSchedule = async (payload: ICreateSchedule) => {
   const { startDate, endDate, startTime, endTime } = payload;
@@ -80,12 +82,16 @@ const getAllSchedules = async (query: IQueryParams) => {
     .sort()
     .fields()
     .execute();
+  return result;
 };
 
 const getScheduleById = async (id: string) => {
   const schedule = await prisma.schedule.findUnique({
     where: { id },
   });
+  if (!schedule) {
+    throw new AppError(status.NOT_FOUND, "Schedule not found");
+  }
   return schedule;
 };
 
@@ -118,7 +124,7 @@ const updateSchedule = async (id: string, payload: IUpdateSchedule) => {
     },
   });
 
-  return updateSchedule;
+  return updatedSchedule;
 };
 
 const deleteSchedule = async (id: string) => {
