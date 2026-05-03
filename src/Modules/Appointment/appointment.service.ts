@@ -1,4 +1,5 @@
-import { uuidv7 } from "zod";
+// import { uuidv7 } from "zod";
+import { v7 as uuidv7 } from "uuid";
 import { IRequestUser } from "../../interfaces/interface";
 import { prisma } from "../../lib/prisma";
 import { IBookAppointmentPayload } from "./appointment.interface";
@@ -78,7 +79,7 @@ const bookAppointment = async (
             product_data: {
               name: `Appointment with Dr. ${doctorData.name}`,
             },
-            unit_amount: doctorData.appointmentFee * 120,
+            unit_amount: doctorData.appointmentFee * 100,
           },
           quantity: 1,
         },
@@ -87,7 +88,7 @@ const bookAppointment = async (
         appointmentId: appointmentData.id,
         paymentId: paymentData.id,
       },
-      success_url: `${envVar.FRONTEND_URL}/dashboard/payment/payment-success`,
+      success_url: `${envVar.FRONTEND_URL}/dashboard/payment/payment-success?appointmentId=${appointmentData.id}&paymentId=${paymentData.id}`,
       cancel_url: `${envVar.FRONTEND_URL}/dashboard/payment`,
     });
 
@@ -205,7 +206,7 @@ const initiatePayment = async (appointmentId: string, user: IRequestUser) => {
           product_data: {
             name: `Appointment with Dr. ${appointmentData.doctor.name}`,
           },
-          unit_amount: appointmentData.doctor.appointmentFee * 120,
+          unit_amount: appointmentData.doctor.appointmentFee * 100,
         },
         quantity: 1,
       },
@@ -214,7 +215,7 @@ const initiatePayment = async (appointmentId: string, user: IRequestUser) => {
       appointmentId: appointmentData.id,
       paymentId: appointmentData.payment.id,
     },
-    success_url: `${envVar.FRONTEND_URL}/dashboard/payment/payment-success`,
+    success_url: `${envVar.FRONTEND_URL}/dashboard/payment/payment-success?appointmentId=${appointmentData.id}&paymentId=${appointmentData.payment.id}`,
     cancel_url: `${envVar.FRONTEND_URL}/dashboard/payment`,
   });
 };
@@ -300,7 +301,7 @@ const getMyAppointments = async (user: IRequestUser) => {
   return appointments;
 };
 
-const getSingleAppointment = async (
+const getMySingleAppointment = async (
   appointmentId: string,
   user: IRequestUser,
 ) => {
@@ -353,7 +354,7 @@ export const appointmentService = {
   initiatePayment,
   cancelAppointment,
   getMyAppointments,
-  getSingleAppointment,
+  getMySingleAppointment,
   getAllAppointments,
   changeAppointmentStatus,
 };

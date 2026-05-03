@@ -56,10 +56,10 @@ const getMyAppointments = catchAsync(async (req, res) => {
   });
 });
 
-const getSingleAppointment = catchAsync(async (req, res) => {
+const getMySingleAppointment = catchAsync(async (req, res) => {
   const id = req.params.id;
   const user = req.user;
-  const result = await appointmentService.getSingleAppointment(
+  const result = await appointmentService.getMySingleAppointment(
     id as string,
     user,
   );
@@ -96,7 +96,7 @@ export const appointmentController = {
   bookAppointmentWithPayLater,
   initiatePayment,
   getMyAppointments,
-  getSingleAppointment,
+  getMySingleAppointment,
   getAllAppointments,
   changeAppointmentStatus,
 };
