@@ -59,7 +59,6 @@ const bookAppointment = async (
       },
     });
 
-    //todo : payment integration will be here
     const transactionId = String(uuidv7());
     const paymentData = await tx.payment.create({
       data: {
