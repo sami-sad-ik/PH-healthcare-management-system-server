@@ -6,7 +6,7 @@ import {
 } from "./patient.interface";
 import { convertToDateTime } from "./patient.utils";
 
-const patientUpdate = async (
+const updatePatient = async (
   payload: IUpdatePatientProfilePayload,
   user: IRequestUser,
 ) => {
@@ -19,7 +19,7 @@ const patientUpdate = async (
       medicalReports: true,
     },
   });
-  const result = await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     if (payload.patientInfo) {
       await tx.patient.update({
         where: {
@@ -72,5 +72,44 @@ const patientUpdate = async (
         },
       });
     }
+
+    if (
+      payload.medicalReports &&
+      Array.isArray(payload.medicalReports) &&
+      payload.medicalReports.length > 0
+    ) {
+      for (const report of payload.medicalReports) {
+        if (report.reportId && report.shouldDelete) {
+          await tx.medicalReport.delete({
+            where: {
+              id: report.reportId,
+            },
+          });
+        } else if (report.reportName && report.reportLink) {
+          await tx.medicalReport.create({
+            data: {
+              patientId: patientData.id,
+              reportLink: report.reportLink,
+              reportName: report.reportName,
+            },
+          });
+        }
+      }
+    }
   });
+  const result = await prisma.patient.findFirstOrThrow({
+    where: {
+      id: patientData.id,
+    },
+    include: {
+      user: true,
+      patientHealthData: true,
+      medicalReports: true,
+    },
+  });
+  return result;
+};
+
+export const patientService = {
+  updatePatient,
 };
