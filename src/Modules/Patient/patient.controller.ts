@@ -7,7 +7,7 @@ import { sendResponse } from "../../shared/sendResponse";
 const updateMyProfile: RequestHandler = catchAsync(async (req, res) => {
   const user = req.user;
   const payload = req.body;
-  const result = await patientService.updatePatient(user, payload);
+  const result = await patientService.updatePatient(payload, user);
   sendResponse(res, {
     httpStatusCode: status.OK,
     success: true,

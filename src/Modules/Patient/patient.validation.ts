@@ -27,7 +27,12 @@ const updatePatientZodSchema = z.object({
     .optional(),
   patientHealthData: z
     .object({
-      dateOfBirth: z.string("Date of birth must be a string").optional(),
+      dateOfBirth: z
+        .string()
+        .refine((date) => !isNaN(Date.parse(date)), {
+          message: "Date of birth must be a valid date string",
+        })
+        .optional(),
       gender: z.enum([Gender.MALE, Gender.FEMALE]).optional(),
       bloodGroup: z
         .enum([
@@ -69,8 +74,36 @@ const updatePatientZodSchema = z.object({
         shouldDelete: z.boolean().optional(),
         reportId: z.uuid().optional(),
         reportName: z.string().optional(),
-        reportUrl: z.url().optional(),
+        reportLink: z.url().optional(),
       }),
+    )
+    .refine(
+      (reports) => {
+        if (!reports) return true; // If medicalReports is not provided, it's valid
+        for (const report of reports) {
+          if (report.shouldDelete && !report.reportId) {
+            return false; // If shouldDelete is true, reportId must be provided
+          }
+          if (report.reportId && !report.shouldDelete) {
+            return false; // If reportId is provided, shouldDelete must be true
+          }
+          if (report.reportName && !report.reportLink) {
+            return false; // If reportName is provided, reportLink must be provided
+          }
+          if (report.reportLink && !report.reportName) {
+            return false; // If reportLink is provided, reportName must be provided
+          }
+          return true;
+        }
+      },
+      {
+        message:
+          "Invalid medical report data. If shouldDelete is true, reportId must be provided. If reportId is provided, shouldDelete must be true. If reportName is provided, reportLink must be provided. If reportLink is provided, reportName must be provided.",
+      },
     )
     .optional(),
 });
+
+export const patientValidation = {
+  updatePatientZodSchema,
+};

@@ -10,6 +10,7 @@ const updatePatient = async (
   payload: IUpdatePatientProfilePayload,
   user: IRequestUser,
 ) => {
+  console.log("user object =>", user);
   const patientData = await prisma.patient.findUniqueOrThrow({
     where: {
       email: user.email,

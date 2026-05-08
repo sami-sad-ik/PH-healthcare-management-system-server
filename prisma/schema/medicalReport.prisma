@@ -1,6 +1,7 @@
 model MedicalReport {
     id String @id @default(uuid(7))
     patientId String
+    reportName String
     reportLink String
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

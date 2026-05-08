@@ -3,9 +3,9 @@ import { patientController } from "./patient.controller";
 import checkAuth from "../../Middleware/checkAuth";
 import { Role } from "../../generated/prisma/enums";
 import { validateRequest } from "../../Middleware/validateRequest";
-import { patientValidation } from "./patient.validation";
 import { multerUpload } from "../../config/multer.config";
 import { updateMyPatientProfileMiddleware } from "./patient.middleware";
+import { patientValidation } from "./patient.validation";
 
 const router = Router();
 

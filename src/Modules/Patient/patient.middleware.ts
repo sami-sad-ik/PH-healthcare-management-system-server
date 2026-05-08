@@ -5,6 +5,9 @@ export const updateMyPatientProfileMiddleware = (
   res: Response,
   next: NextFunction,
 ) => {
+  if (req.body.data) {
+    req.body = JSON.parse(req.body.data);
+  }
   const payload = req.body;
   const files = req.files as { [fieldName: string]: Express.Multer.File[] };
   if (files?.profilePhoto?.[0]) {
