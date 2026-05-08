@@ -4,7 +4,7 @@ import { patientService } from "./patient.service";
 import status from "http-status";
 import { sendResponse } from "../../shared/sendResponse";
 
-const updateMyProfiile: RequestHandler = catchAsync(async (req, res) => {
+const updateMyProfile: RequestHandler = catchAsync(async (req, res) => {
   const user = req.user;
   const payload = req.body;
   const result = await patientService.updatePatient(user, payload);
@@ -17,5 +17,5 @@ const updateMyProfiile: RequestHandler = catchAsync(async (req, res) => {
 });
 
 export const patientController = {
-  updateMyProfiile,
+  updateMyProfile,
 };
