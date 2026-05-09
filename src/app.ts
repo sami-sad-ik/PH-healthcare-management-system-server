@@ -46,7 +46,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-cron.schedule("* * * * *", async () => {
+cron.schedule("*/25 * * * *", async () => {
   try {
     console.log("Cron job executed");
     await appointmentService.cancelAppointment();

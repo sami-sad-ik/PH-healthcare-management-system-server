@@ -40,7 +40,7 @@ export const uploadFileToCloudinary = async (
     cloudinary.uploader
       .upload_stream(
         {
-          folder: `ph-healthcare/${folder}`,
+          // folder: `ph-healthcare/${folder}`,
           public_id: `ph-healthcare/${folder}/${uniqueName}`,
           resource_type: "auto",
         },
@@ -67,6 +67,12 @@ export const deleteFileFromCloudinary = async (url: string) => {
       const resourceType = publicId.includes("ph-healthcare/pdfs")
         ? "raw"
         : "image";
+
+      // ADD THESE LOGS
+      console.log("URL received:", url);
+      console.log("Extracted publicId:", publicId);
+      console.log("Resource type:", resourceType);
+
       await cloudinary.uploader.destroy(publicId, {
         resource_type: resourceType,
       });
