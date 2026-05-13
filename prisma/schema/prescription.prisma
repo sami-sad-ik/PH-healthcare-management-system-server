@@ -5,6 +5,7 @@ model Prescription {
   appointmentId String      @unique
   followUpDate DateTime
   instructions String   @db.Text
+  pdfUrl       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

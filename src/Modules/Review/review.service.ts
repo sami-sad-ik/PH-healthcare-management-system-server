@@ -121,9 +121,9 @@ const updateReview = async (
     where: { id: reviewId },
   });
 
-  if (reviewData.patientId !== user.id) {
+  if (patientData.id !== reviewData.patientId) {
     throw new AppError(
-      status.UNAUTHORIZED,
+      status.BAD_REQUEST,
       "You can only update your own reviews",
     );
   }
@@ -145,10 +145,45 @@ const updateReview = async (
       where: { id: reviewData.doctorId },
       data: { averageRating: averageRating._avg.rating as number },
     });
+    return review;
   });
+  return result;
 };
 
-const deleteReview = async () => {};
+const deleteReview = async (reviewId: string, user: IRequestUser) => {
+  const patientData = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: user.email,
+    },
+  });
+  const reviewData = await prisma.review.findUniqueOrThrow({
+    where: { id: reviewId },
+  });
+  if (patientData.id !== reviewData.patientId) {
+    throw new AppError(
+      status.BAD_REQUEST,
+      "You can only delete your own reviews",
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const deletedReview = await tx.review.delete({
+      where: { id: reviewId },
+    });
+    const averageRating = await prisma.review.aggregate({
+      where: {
+        doctorId: reviewData.doctorId,
+      },
+      _avg: { rating: true },
+    });
+    await tx.doctor.update({
+      where: { id: reviewData.doctorId },
+      data: { averageRating: averageRating._avg.rating as number },
+    });
+    return deletedReview;
+  });
+  return result;
+};
 
 export const ReviewService = {
   giveReview,

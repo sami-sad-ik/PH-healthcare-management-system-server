@@ -14,11 +14,7 @@ router.post(
   ReviewController.giveReview,
 );
 
-router.get(
-  "/",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
-  ReviewController.getReviews,
-);
+router.get("/", ReviewController.getReviews);
 
 router.get(
   "/my-reviews",
