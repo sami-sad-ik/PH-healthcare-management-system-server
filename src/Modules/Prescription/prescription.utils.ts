@@ -6,7 +6,6 @@ interface PrescriptionData {
   doctorEmail: string;
   patientName: string;
   patientEmail: string;
-  appointmentId: string;
   followUpDate: Date;
   instructions: string;
   prescriptionId: string;
@@ -65,14 +64,6 @@ export const generatePrescriptionPDF = (prescriptionData: PrescriptionData) => {
         .font("Helvetica")
         .text(`Name: ${prescriptionData.patientName}`)
         .text(`Email: ${prescriptionData.patientEmail}`);
-
-      doc.moveDown(0.8);
-      doc.fontSize(11).font("Helvetica-Bold").text("Appointment information");
-      doc
-        .fontSize(10)
-        .font("Helvetica")
-        .text(`Appointment ID: ${prescriptionData.appointmentId}`)
-        .text(`Follow up date: ${prescriptionData.followUpDate}`);
 
       doc.moveDown(0.8);
 
