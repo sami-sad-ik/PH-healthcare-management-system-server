@@ -6,6 +6,7 @@ import { ICreatePrescription } from "./prescription.interface";
 import { Role } from "../../generated/prisma/enums";
 import { generatePrescriptionPDF } from "./prescription.utils";
 import { uploadFileToCloudinary } from "../../config/cloudinary.config";
+import { sendEmail } from "../../utils/email";
 
 const givePrescription = async (
   payload: ICreatePrescription,
@@ -18,6 +19,12 @@ const givePrescription = async (
     where: { id: payload.appointmentId },
     include: {
       patient: true,
+      doctor: {
+        include: {
+          specialities: true,
+        },
+      },
+
       schedule: {
         include: {
           doctorSchedules: true,
@@ -41,7 +48,7 @@ const givePrescription = async (
   }
   const followUpDate = new Date(payload.followUpDate);
 
-  await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const result = await tx.prescription.create({
       data: {
         ...payload,
@@ -64,7 +71,7 @@ const givePrescription = async (
     const fileName = `Prescription-${new Date()}.pdf`;
     const uploadedFile = await uploadFileToCloudinary(pdfBuffer, fileName);
     const pdfUrl = uploadedFile.secure_url;
-    await tx.prescription.update({
+    const updatedPrescription = await tx.prescription.update({
       where: {
         id: result.id,
       },
@@ -72,8 +79,40 @@ const givePrescription = async (
         pdfUrl,
       },
     });
-    return result;
+
+    try {
+      const patient = appointmentData.patient;
+      const doctor = appointmentData.doctor;
+      await sendEmail({
+        to: patient.email,
+        subject: `You have a new prescription from ${doctor.name}. Please check your profile for more details.`,
+        templateName: "Prescription",
+        templateData: {
+          doctorName: doctor.name,
+          patientName: patient.name,
+          specialization: doctor.specialities
+            .map((speciality: any) => speciality.title)
+            .join(", "),
+          instructions: payload.instructions,
+          followUpDate,
+          appointmentDate: new Date(appointmentData.schedule.startDateTime),
+        },
+        attachments: [
+          {
+            fileName: fileName,
+            content: pdfBuffer,
+            contentType: "application/pdf",
+          },
+        ],
+      });
+    } catch (error) {
+      console.log(``);
+    }
+
+    return updatedPrescription;
   });
+
+  return result;
 };
 
 const getAllPrescriptions = async () => {
