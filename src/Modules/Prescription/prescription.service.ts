@@ -2,10 +2,16 @@ import status from "http-status";
 import AppError from "../../ErrorHelpers/AppError";
 import { IRequestUser } from "../../interfaces/interface";
 import { prisma } from "../../lib/prisma";
-import { ICreatePrescription } from "./prescription.interface";
+import {
+  ICreatePrescription,
+  IUpdatePrescription,
+} from "./prescription.interface";
 import { Role } from "../../generated/prisma/enums";
 import { generatePrescriptionPDF } from "./prescription.utils";
-import { uploadFileToCloudinary } from "../../config/cloudinary.config";
+import {
+  deleteFileFromCloudinary,
+  uploadFileToCloudinary,
+} from "../../config/cloudinary.config";
 import { sendEmail } from "../../utils/email";
 
 const givePrescription = async (
@@ -88,14 +94,19 @@ const givePrescription = async (
         subject: `You have a new prescription from ${doctor.name}. Please check your profile for more details.`,
         templateName: "Prescription",
         templateData: {
+          prescriptionId: result.id,
           doctorName: doctor.name,
           patientName: patient.name,
           specialization: doctor.specialities
             .map((speciality: any) => speciality.title)
             .join(", "),
           instructions: payload.instructions,
+          issuedDate: new Date().toLocaleString(),
           followUpDate,
-          appointmentDate: new Date(appointmentData.schedule.startDateTime),
+          appointmentDate: new Date(
+            appointmentData.schedule.startDateTime,
+          ).toLocaleDateString(),
+          pdfUrl,
         },
         attachments: [
           {
@@ -106,7 +117,7 @@ const givePrescription = async (
         ],
       });
     } catch (error) {
-      console.log(``);
+      console.log(`Failed to send email`, error);
     }
 
     return updatedPrescription;
@@ -160,9 +171,109 @@ const myPrescriptions = async (user: IRequestUser) => {
   }
 };
 
-const updatePrescription = async () => {};
+const updatePrescription = async (
+  prescriptionId: string,
+  user: IRequestUser,
+  payload: IUpdatePrescription,
+) => {
+  const isUserExists = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: user.email,
+    },
+  });
+  const prescriptionData = await prisma.prescription.findUniqueOrThrow({
+    where: {
+      id: prescriptionId,
+    },
+    include: {
+      doctor: true,
+      patient: true,
+      appointment: { include: { schedule: true } },
+    },
+  });
+  if (prescriptionData.doctorId !== isUserExists.id) {
+    throw new AppError(
+      status.FORBIDDEN,
+      "You can only update your own prescriptions",
+    );
+  }
+  const updatedInstructions =
+    payload.instructions || prescriptionData.instructions;
+  const updatedFollowUpDate = payload.followUpDate
+    ? new Date(payload.followUpDate)
+    : prescriptionData.followUpDate;
+  const pdfBuffer = (await generatePrescriptionPDF({
+    doctorName: prescriptionData.doctor.name,
+    doctorEmail: prescriptionData.doctor.email,
+    patientName: prescriptionData.patient.name,
+    patientEmail: prescriptionData.patient.email,
+    appointmentDate: prescriptionData.appointment.schedule.startDateTime,
+    instructions: updatedInstructions,
+    followUpDate: updatedFollowUpDate,
+    prescriptionId,
+    createdAt: new Date(),
+  })) as Buffer;
 
-const deletePrescription = async () => {};
+  const fileName = `Prescription-${new Date()}.pdf`;
+  const uploadedFile = await uploadFileToCloudinary(pdfBuffer, fileName);
+  const newPdfUrl = uploadedFile.secure_url;
+
+  if (prescriptionData.pdfUrl) {
+    try {
+      await deleteFileFromCloudinary(prescriptionData.pdfUrl);
+    } catch (error) {
+      console.log(`Failed to delete file from cloudinary`, error);
+    }
+  }
+  const result = await prisma.prescription.update({
+    where: { id: prescriptionId },
+    data: {
+      instructions: updatedInstructions,
+      followUpDate: updatedFollowUpDate,
+      pdfUrl: newPdfUrl,
+    },
+    include: {
+      patient: true,
+      doctor: true,
+      appointment: { include: { schedule: true } },
+    },
+  });
+};
+
+const deletePrescription = async (
+  prescriptionId: string,
+  user: IRequestUser,
+) => {
+  const isExistsUser = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: user.email,
+    },
+  });
+  const prescriptionData = await prisma.prescription.findUniqueOrThrow({
+    where: {
+      id: prescriptionId,
+    },
+    include: { doctor: true },
+  });
+  if (isExistsUser.email !== user.email) {
+    throw new AppError(
+      status.FORBIDDEN,
+      "You can only delete your own prescriptions",
+    );
+  }
+  if (prescriptionData.pdfUrl) {
+    try {
+      await deleteFileFromCloudinary(prescriptionData.pdfUrl);
+    } catch (error) {
+      console.log(`Failed to delete file from cloudinary`, error);
+    }
+  }
+
+  const result = await prisma.prescription.delete({
+    where: { id: prescriptionId },
+  });
+  return result;
+};
 
 export const prescriptionService = {
   givePrescription,
