@@ -54,74 +54,80 @@ const givePrescription = async (
   }
   const followUpDate = new Date(payload.followUpDate);
 
-  const result = await prisma.$transaction(async (tx) => {
-    const result = await tx.prescription.create({
-      data: {
-        ...payload,
-        followUpDate,
-        doctorId: doctorData.id,
-        patientId: appointmentData.patientId,
-      },
-    });
-    const pdfBuffer = (await generatePrescriptionPDF({
-      doctorName: doctorData.name,
-      doctorEmail: doctorData.email,
-      patientName: appointmentData.patient.name,
-      patientEmail: appointmentData.patient.email,
-      appointmentDate: appointmentData.schedule.startDateTime,
-      instructions: payload.instructions,
-      followUpDate,
-      prescriptionId: result.id,
-      createdAt: new Date(),
-    })) as Buffer;
-    const fileName = `Prescription-${new Date()}.pdf`;
-    const uploadedFile = await uploadFileToCloudinary(pdfBuffer, fileName);
-    const pdfUrl = uploadedFile.secure_url;
-    const updatedPrescription = await tx.prescription.update({
-      where: {
-        id: result.id,
-      },
-      data: {
-        pdfUrl,
-      },
-    });
-
-    try {
-      const patient = appointmentData.patient;
-      const doctor = appointmentData.doctor;
-      await sendEmail({
-        to: patient.email,
-        subject: `You have a new prescription from ${doctor.name}. Please check your profile for more details.`,
-        templateName: "Prescription",
-        templateData: {
-          prescriptionId: result.id,
-          doctorName: doctor.name,
-          patientName: patient.name,
-          specialization: doctor.specialities
-            .map((speciality: any) => speciality.title)
-            .join(", "),
-          instructions: payload.instructions,
-          issuedDate: new Date().toLocaleString(),
+  const result = await prisma.$transaction(
+    async (tx) => {
+      const result = await tx.prescription.create({
+        data: {
+          ...payload,
           followUpDate,
-          appointmentDate: new Date(
-            appointmentData.schedule.startDateTime,
-          ).toLocaleDateString(),
+          doctorId: doctorData.id,
+          patientId: appointmentData.patientId,
+        },
+      });
+      const pdfBuffer = (await generatePrescriptionPDF({
+        doctorName: doctorData.name,
+        doctorEmail: doctorData.email,
+        patientName: appointmentData.patient.name,
+        patientEmail: appointmentData.patient.email,
+        appointmentDate: appointmentData.schedule.startDateTime,
+        instructions: payload.instructions,
+        followUpDate,
+        prescriptionId: result.id,
+        createdAt: new Date(),
+      })) as Buffer;
+      const fileName = `Prescription-${new Date()}.pdf`;
+      const uploadedFile = await uploadFileToCloudinary(pdfBuffer, fileName);
+      const pdfUrl = uploadedFile.secure_url;
+      const updatedPrescription = await tx.prescription.update({
+        where: {
+          id: result.id,
+        },
+        data: {
           pdfUrl,
         },
-        attachments: [
-          {
-            fileName: fileName,
-            content: pdfBuffer,
-            contentType: "application/pdf",
-          },
-        ],
       });
-    } catch (error) {
-      console.log(`Failed to send email`, error);
-    }
 
-    return updatedPrescription;
-  });
+      try {
+        const patient = appointmentData.patient;
+        const doctor = appointmentData.doctor;
+        await sendEmail({
+          to: patient.email,
+          subject: `You have a new prescription from ${doctor.name}. Please check your profile for more details.`,
+          templateName: "Prescription",
+          templateData: {
+            prescriptionId: result.id,
+            doctorName: doctor.name,
+            patientName: patient.name,
+            specialization: doctor.specialities
+              .map((speciality: any) => speciality.title)
+              .join(", "),
+            instructions: payload.instructions,
+            issuedDate: new Date().toLocaleString(),
+            followUpDate,
+            appointmentDate: new Date(
+              appointmentData.schedule.startDateTime,
+            ).toLocaleDateString(),
+            pdfUrl,
+          },
+          attachments: [
+            {
+              fileName: fileName,
+              content: pdfBuffer,
+              contentType: "application/pdf",
+            },
+          ],
+        });
+      } catch (error) {
+        console.log(`Failed to send email`, error);
+      }
+
+      return updatedPrescription;
+    },
+    {
+      maxWait: 15000,
+      timeout: 20000,
+    },
+  );
 
   return result;
 };
@@ -255,7 +261,7 @@ const deletePrescription = async (
     },
     include: { doctor: true },
   });
-  if (isExistsUser.email !== user.email) {
+  if (prescriptionData.doctor.email !== user.email) {
     throw new AppError(
       status.FORBIDDEN,
       "You can only delete your own prescriptions",
