@@ -14,10 +14,10 @@ const getDashboardStatsData = async (user: IRequestUser) => {
       statsData = await getAdminStatsData();
       break;
     case Role.DOCTOR:
-      statsData = await getDoctorStatsData();
+      statsData = await getDoctorStatsData(user);
       break;
     case Role.PATIENT:
-      statsData = await getPatientStatsData();
+      statsData = await getPatientStatsData(user);
       break;
     default:
       throw new AppError(status.BAD_REQUEST, "Invalid user role");
@@ -147,7 +147,65 @@ const getPatientStatsData = async (user: IRequestUser) => {
       userId: user.id,
     },
   });
-  return patientData;
+  const appointmentCount = await prisma.appointment.count({
+    where: {
+      patientId: patientData?.id,
+    },
+  });
+
+  const reviewCount = await prisma.review.count({
+    where: {
+      patientId: patientData?.id,
+    },
+  });
+  const appointmentStatusDistribution = await prisma.appointment.groupBy({
+    by: ["status"],
+    where: {
+      patientId: patientData?.id,
+    },
+    _count: {
+      id: true,
+    },
+  });
+  const formattedAppointmentStatusDistribution =
+    appointmentStatusDistribution.map(({ status, _count }) => ({
+      status,
+      count: _count.id,
+    }));
+
+  return {
+    appointmentCount,
+    reviewCount,
+    appointmentStatusDistribution: formattedAppointmentStatusDistribution,
+  };
+};
+const getPieChartData = async () => {
+  const appointmentStatusDistribution = await prisma.appointment.groupBy({
+    by: ["status"],
+    _count: {
+      id: true,
+    },
+  });
+  const formattedAppointmentStatusDistribution =
+    appointmentStatusDistribution.map(({ status, _count }) => ({
+      status,
+      count: _count.id,
+    }));
+  return formattedAppointmentStatusDistribution;
+};
+
+const getBarChartData = async () => {
+  interface IAppointmentCountByMonth {
+    month: Date;
+    count: bigint;
+  }
+
+  const appointmentCountByMonth: IAppointmentCountByMonth[] =
+    await prisma.$queryRaw`
+    SELECT Date_TRUNC('month', "createdAt") AS month, 
+    CASE(COUNT(*) AS INTEGER) AS count
+    FROM "appointments"
+  `;
 };
 
 export const statsService = {
