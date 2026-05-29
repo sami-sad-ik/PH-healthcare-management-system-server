@@ -9,8 +9,8 @@ import { doctorScheduleRoute } from "../Modules/DoctorSchedule/doctorSchedule.ro
 import { appointmentRoute } from "../Modules/Appointment/appointment.route";
 import { patientRoute } from "../Modules/Patient/patient.route";
 import { ReviewRoute } from "../Modules/Review/review.route";
-import { paymentRoute } from "../Modules/Payment/payment.route";
 import { statsRoute } from "../Modules/Stats/stats.route";
+import { paymentRoute } from "../Modules/Payment/payment.route";
 
 const router = Router();
 

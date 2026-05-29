@@ -2,8 +2,9 @@ import Stripe from "stripe";
 import { prisma } from "../../lib/prisma";
 import { PaymentStatus } from "../../generated/prisma/enums";
 import { uploadFileToCloudinary } from "../../config/cloudinary.config";
-import { generateInvoicePdf } from "./payment.utils";
 import { sendEmail } from "../../utils/email";
+import { generateInvoicePdf } from "./payment.utils";
+
 const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
   const existingPayment = await prisma.payment.findFirst({
     where: {
@@ -129,7 +130,7 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
             },
             attachments: [
               {
-                filename: `Invoice-${paymentId}.pdf`,
+                fileName: `Invoice-${paymentId}.pdf`,
                 content: pdfBuffer || Buffer.from(""), // Attach PDF if generated, else empty buffer
                 contentType: "application/pdf",
               },

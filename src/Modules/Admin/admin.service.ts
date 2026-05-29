@@ -2,8 +2,13 @@ import status from "http-status";
 import AppError from "../../ErrorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { Role } from "../../generated/prisma/enums";
-import { IUpdateAdmin } from "./admin.interface";
+import {
+  IChangeUserRole,
+  IChangeUserStatus,
+  IUpdateAdmin,
+} from "./admin.interface";
 import { IAuthUser } from "../Auth/auth.interface";
+import { IRequestUser } from "../../interfaces/interface";
 
 const getAllAdmins = async () => {
   const result = await prisma.admin.findMany({
@@ -69,9 +74,21 @@ const updateAdmin = async (
   return result;
 };
 
+const changeUserStatus = async (
+  user: IRequestUser,
+  payload: IChangeUserStatus,
+) => {};
+
+const changeUserRole = async (
+  user: IRequestUser,
+  payload: IChangeUserRole,
+) => {};
+
 export const adminService = {
   getAllAdmins,
   getAdminById,
   deleteAdmin,
   updateAdmin,
+  changeUserStatus,
+  changeUserRole,
 };

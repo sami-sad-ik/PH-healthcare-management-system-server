@@ -45,6 +45,10 @@ const getSuperAdminStatsData = async () => {
       amount: true,
     },
   });
+
+  const pieChartData = await getPieChartData();
+  const barChartData = await getBarChartData();
+
   return {
     appointmentCount,
     doctorCount,
@@ -54,6 +58,8 @@ const getSuperAdminStatsData = async () => {
     paymentCount,
     userCount,
     totalRevenue: totalRevenue._sum.amount || 0,
+    pieChartData,
+    barChartData,
   };
 };
 
@@ -72,6 +78,10 @@ const getAdminStatsData = async () => {
       amount: true,
     },
   });
+
+  const pieChartData = await getPieChartData();
+  const barChartData = await getBarChartData();
+
   return {
     appointmentCount,
     doctorCount,
@@ -80,6 +90,8 @@ const getAdminStatsData = async () => {
     paymentCount,
     userCount,
     totalRevenue: totalRevenue._sum.amount || 0,
+    pieChartData,
+    barChartData,
   };
 };
 
@@ -203,9 +215,13 @@ const getBarChartData = async () => {
   const appointmentCountByMonth: IAppointmentCountByMonth[] =
     await prisma.$queryRaw`
     SELECT Date_TRUNC('month', "createdAt") AS month, 
-    CASE(COUNT(*) AS INTEGER) AS count
+    CAST(COUNT(*) AS INTEGER) AS count
     FROM "appointments"
+    GROUP BY month
+    ORDER BY month ASC;
   `;
+
+  return appointmentCountByMonth;
 };
 
 export const statsService = {
