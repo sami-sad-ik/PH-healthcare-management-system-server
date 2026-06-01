@@ -7,7 +7,10 @@ import { zodErrorHandler } from "../ErrorHelpers/zodErrorHandler";
 import AppError from "../ErrorHelpers/AppError";
 import { deleteFileFromCloudinaryOnError } from "../utils/deleteFileFromCloudinary";
 import { Prisma } from "../generated/prisma/client";
-import { handlePrismaClientKnownRequestError } from "../ErrorHelpers/handlePrismaErrors";
+import {
+  handlePrismaClientKnownRequestError,
+  handlePrismaClientUnknownRequestError,
+} from "../ErrorHelpers/handlePrismaErrors";
 
 export const globalErrorHandler = async (
   err: any,
@@ -37,7 +40,15 @@ export const globalErrorHandler = async (
     const simplifiedError = handlePrismaClientKnownRequestError(err);
     statusCode = simplifiedError.statusCode as number;
     message = simplifiedError.message;
-    errSources = simplifiedError.errSources ? [...simplifiedError.errSources] : [];
+    errSources = simplifiedError.errSources
+      ? [...simplifiedError.errSources]
+      : [];
+    stack = err.stack;
+  } else if (err instanceof Prisma.PrismaClientUnknownRequestError) {
+    const simplifiedError = handlePrismaClientUnknownRequestError(err);
+    statusCode = simplifiedError.statusCode as number;
+    message = simplifiedError.message;
+    errSources = [...simplifiedError.errSources];
     stack = err.stack;
   } else if (err instanceof z.ZodError) {
     const simplifiedError = zodErrorHandler(err);
