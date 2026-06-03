@@ -10,6 +10,8 @@ import { Prisma } from "../generated/prisma/client";
 import {
   handlePrismaClientKnownRequestError,
   handlePrismaClientUnknownRequestError,
+  handlePrismaClientValidationError,
+  // handlePrismaClientInitializationError,
 } from "../ErrorHelpers/handlePrismaErrors";
 
 export const globalErrorHandler = async (
@@ -46,6 +48,14 @@ export const globalErrorHandler = async (
     stack = err.stack;
   } else if (err instanceof Prisma.PrismaClientUnknownRequestError) {
     const simplifiedError = handlePrismaClientUnknownRequestError(err);
+    statusCode = simplifiedError.statusCode as number;
+    message = simplifiedError.message;
+    errSources = simplifiedError.errSources
+      ? [...simplifiedError.errSources]
+      : [];
+    stack = err.stack;
+  } else if (err instanceof Prisma.PrismaClientValidationError) {
+    const simplifiedError = handlePrismaClientValidationError(err);
     statusCode = simplifiedError.statusCode as number;
     message = simplifiedError.message;
     errSources = [...simplifiedError.errSources];
