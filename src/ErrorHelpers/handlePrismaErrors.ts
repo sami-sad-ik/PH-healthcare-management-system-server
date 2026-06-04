@@ -1,4 +1,6 @@
 import status from "http-status";
+import { Prisma } from "../generated/prisma/client";
+import { TerrResponse, TerrSources } from "../interfaces";
 
 const getStatusCodeFromPrismaError = (errorCode: string): number => {
   // P2002 : unique constraint violation
@@ -77,4 +79,144 @@ const formatErrorMeta = (meta?: Record<string, unknown>): string => {
     parts.push(`Database Error : ${String(meta.database_error)}`);
   }
   return parts.length > 0 ? parts.join(" | ") : "";
+};
+
+export const handlePrismaClientKnownRequestError = (
+  error: Prisma.PrismaClientKnownRequestError,
+): TerrResponse => {
+  const statusCode = getStatusCodeFromPrismaError(error.code);
+  const metaInfo = formatErrorMeta(error.meta);
+
+  let cleanMessage = error.message;
+
+  //remove the "invalid `prisma.error.create()` invocation" from the message
+  cleanMessage = cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
+  const lines = cleanMessage.split("\n").filter((line) => line.trim());
+  const mainMessage =
+    lines[0] || "An error occurred with the database operation.";
+
+  const errorSources: TerrSources[] = [
+    {
+      path: error.code,
+      message: metaInfo ? `${mainMessage} | ${metaInfo}` : mainMessage,
+    },
+  ];
+  if (error.meta?.cause) {
+    errorSources.push({
+      path: "cause",
+      message: String(error.meta.cause),
+    });
+  }
+
+  return {
+    success: false,
+    statusCode,
+    message: `Prisma Client Known Request Error: ${mainMessage}`,
+    errSources: errorSources,
+  };
+};
+
+export const handlePrismaClientUnknownRequestError = (
+  error: Prisma.PrismaClientUnknownRequestError,
+): TerrResponse => {
+  let cleanMessage = error.message;
+  //remove the "invalid `prisma.error.create()` invocation" from the message
+  cleanMessage = cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
+  const lines = cleanMessage.split("\n").filter((line) => line.trim());
+  const mainMessage =
+    lines[0] || "An error occurred with the database operation.";
+
+  const errorSources: TerrSources[] = [
+    {
+      path: "unknown_error",
+      message: mainMessage,
+    },
+  ];
+  return {
+    success: false,
+    statusCode: status.INTERNAL_SERVER_ERROR,
+    message: `Prisma Client Unknown Request Error: ${mainMessage}`,
+    errSources: errorSources,
+  };
+};
+
+export const handlePrismaClientValidationError = (
+  error: Prisma.PrismaClientValidationError,
+) => {
+  let cleanMessage = error.message;
+
+  //remove the "invalid `prisma.error.create()` invocation" from the message
+  cleanMessage = cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
+  const lines = cleanMessage.split("\n").filter((line) => line.trim());
+
+  const errorSources: TerrSources[] = [];
+
+  //extract field name for field specific validation errors
+  //example : "Argument `data.email` : got invalid value ` invalid-email` on prisma.user.create()"
+  const fieldMatch = cleanMessage.match(/Argument `(\w+)`/i);
+  const fieldName = fieldMatch ? fieldMatch[1] : "unknown_field";
+
+  const mainMessage = lines.find(
+    (line) =>
+      (!line.includes("Argument") &&
+        !line.includes("→") &&
+        line.length > 10 &&
+        line[0]) ||
+      "Invalid query parameters provided to the database operation.",
+  );
+  errorSources.push({
+    path: fieldName,
+    message: mainMessage || "An error occurred with the database operation.",
+  });
+
+  return {
+    success: false,
+    statusCode: status.BAD_REQUEST,
+    message: `Prisma Client Unknown Request Error: ${mainMessage}`,
+    errSources: errorSources,
+  };
+};
+
+export const handlePrismaClientInitializationError = (
+  error: Prisma.PrismaClientInitializationError,
+) => {
+  const statusCode = error.errorCode
+    ? getStatusCodeFromPrismaError(error.errorCode)
+    : status.SERVICE_UNAVAILABLE;
+
+  let cleanMessage = error.message;
+  cleanMessage = cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
+  const lines = cleanMessage.split("\n").filter((line) => line.trim());
+  const mainMessage =
+    lines[0] || "An error occurred while initializing the database client.";
+  const errorSources: TerrSources[] = [
+    {
+      path: error.errorCode || "initialization_error",
+      message: mainMessage,
+    },
+  ];
+  return {
+    success: false,
+    statusCode,
+    message: `Prisma Client Initialization Error: ${mainMessage}`,
+    errSources: errorSources,
+  };
+};
+
+export const handlePrismaclientRustPanicError = () => {
+  const errorSources: TerrSources[] = [
+    {
+      path: "rust_panic_error",
+      message:
+        "The database client encountered a critical error and panicked. Please check the server logs for more details.",
+    },
+  ];
+
+  return {
+    success: false,
+    statusCode: status.INTERNAL_SERVER_ERROR,
+    message:
+      "Prisma Client Rust Panic Error: The database client encountered a critical error and panicked.",
+    errSources: errorSources,
+  };
 };

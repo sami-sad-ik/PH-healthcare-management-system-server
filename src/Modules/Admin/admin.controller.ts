@@ -54,9 +54,35 @@ const updateAdmin: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const changeUserStatus: RequestHandler = catchAsync(async (req, res) => {
+  const user = req.user;
+  const payload = req.body;
+  const result = await adminService.changeUserStatus(user, payload);
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "User status changed successfully",
+    data: result,
+  });
+});
+
+const changeUserRole: RequestHandler = catchAsync(async (req, res) => {
+  const user = req.user;
+  const payload = req.body;
+  const result = await adminService.changeUserRole(user, payload);
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "User role changed successfully",
+    data: result,
+  });
+});
+
 export const adminController = {
   getAllAdmins,
   getAdminById,
   deleteAdmin,
   updateAdmin,
+  changeUserStatus,
+  changeUserRole,
 };
