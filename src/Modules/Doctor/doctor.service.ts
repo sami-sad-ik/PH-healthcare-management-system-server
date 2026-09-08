@@ -84,7 +84,11 @@ const getDoctorById = async (id: string) => {
         select: { speciality: true },
       },
       appointments: { orderBy: { createdAt: "desc" } },
-      doctorSchedules: true,
+      doctorSchedules: {
+        include: {
+          schedule: true,
+        },
+      },
       reviews: true,
     },
   });

@@ -17,9 +17,6 @@ const checkAuth = (...roles: Role[]) => {
         req,
         "better-auth.session_token",
       );
-      if (!sessionToken) {
-        throw new AppError(status.UNAUTHORIZED, "Unauthorized access!");
-      }
       if (sessionToken) {
         const sessionExists = await prisma.session.findFirst({
           where: {
@@ -64,13 +61,13 @@ const checkAuth = (...roles: Role[]) => {
           }
 
           req.user = {
-            id : user.id,
-            email : user.email,
-            role : user.role,
-          }
+            id: user.id,
+            email: user.email,
+            role: user.role,
+          };
         }
       }
-      
+
       const accessToken = cookieUtils.getCookie(req, "accessToken");
       if (!accessToken) {
         throw new AppError(status.UNAUTHORIZED, "Unauthorized access!");
@@ -82,12 +79,23 @@ const checkAuth = (...roles: Role[]) => {
       if (!verifiedToken.success) {
         throw new AppError(status.UNAUTHORIZED, "Unauthorized access!");
       }
-      if (roles.length && !roles.includes(verifiedToken.data.role)) {
+
+      const tokenUser = verifiedToken.data as JwtPayload;
+      if (tokenUser.isDeleted || tokenUser.status === UserStatus.BLOCKED) {
+        throw new AppError(status.UNAUTHORIZED, "Unauthorized access!");
+      }
+      if (roles.length && !roles.includes(tokenUser.role)) {
         throw new AppError(
           status.FORBIDDEN,
           "Forbidden access ! you don't have permission to access for this resource",
         );
       }
+
+      req.user = {
+        id: tokenUser.id,
+        email: tokenUser.email,
+        role: tokenUser.role,
+      };
       next();
     } catch (error) {
       next(error);

@@ -13,7 +13,7 @@ const createDoctorZodSchema = z.object({
     contactNumber: z
       .string("Contact number is required")
       .min(11, "Contact number must be at least 11 digits"),
-    profilePhoto: z.string("profile photo required"),
+    profilePhoto: z.string("profile photo required").optional(),
     address: z.string("Address is required").optional(),
     registrationNumber: z.string("Registration number is required"),
     qualification: z.string("Qualification is required"),
@@ -37,14 +37,13 @@ const createDoctorZodSchema = z.object({
 });
 
 const createAdminValidationSchema = z.object({
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    admin: z.object({
-      name: z.string().min(1, "Name is required"),
-      email: z.email("Invalid email format"),
-      profilePhoto: z.url("Invalid URL format").optional(),
-      contactNumber: z.string().min(11, "Contact number is required"),
-    }),
-
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  admin: z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.email("Invalid email format"),
+    profilePhoto: z.url("Invalid URL format").optional(),
+    contactNumber: z.string().min(11, "Contact number is required"),
+  }),
 });
 
 export { createDoctorZodSchema, createAdminValidationSchema };

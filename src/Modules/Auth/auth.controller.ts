@@ -56,7 +56,6 @@ const loginUser = catchAsync(async (req, res) => {
 
 const getMe = catchAsync(async (req, res) => {
   const user = req.user;
-  console.log("user from getMe controller", user);
   const result = await authService.getMe(user);
   sendResponse(res, {
     httpStatusCode: status.OK,

@@ -149,6 +149,22 @@ export class QueryBuilder<
           countQueryRelation[nestedfield] = this.parseFilterValue(value);
           return;
         }
+
+        if (parts.length === 3) {
+          const [relation, nestedRelation, nestedField] = parts;
+          const nestedFilter = this.parseFilterValue(value);
+          const relationFilter = {
+            some: {
+              [nestedRelation]: {
+                [nestedField]: nestedFilter,
+              },
+            },
+          };
+
+          queryWhere[relation] = relationFilter;
+          countQueryWhere[relation] = relationFilter;
+          return;
+        }
       }
 
       if (!isAllowedField) {

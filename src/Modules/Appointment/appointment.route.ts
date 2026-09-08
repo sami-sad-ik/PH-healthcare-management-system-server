@@ -35,6 +35,10 @@ router.post(
   checkAuth(Role.PATIENT),
   appointmentController.bookAppointmentWithPayLater,
 );
-router.post("/initiate-payment/:id", appointmentController.initiatePayment);
+router.post(
+  "/initiate-payment/:id",
+  checkAuth(Role.PATIENT),
+  appointmentController.initiatePayment,
+);
 
 export const appointmentRoute = router;

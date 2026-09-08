@@ -35,6 +35,9 @@ const bookAppointment = async (
       },
     },
   });
+  if (doctorSchedule.isBooked) {
+    throw new Error("This appointment schedule is already booked");
+  }
   const videoCallingId = String(uuidv7());
 
   const result = await prisma.$transaction(async (tx) => {
@@ -47,17 +50,19 @@ const bookAppointment = async (
       },
     });
 
-    await tx.doctorSchedule.update({
+    const scheduleClaim = await tx.doctorSchedule.updateMany({
       where: {
-        doctorId_scheduleId: {
-          doctorId: payload.doctorId,
-          scheduleId: payload.scheduleId,
-        },
+        doctorId: payload.doctorId,
+        scheduleId: payload.scheduleId,
+        isBooked: false,
       },
       data: {
         isBooked: true,
       },
     });
+    if (scheduleClaim.count !== 1) {
+      throw new Error("This appointment schedule is already booked");
+    }
 
     const transactionId = String(uuidv7());
     const paymentData = await tx.payment.create({
@@ -132,6 +137,9 @@ const bookAppointmentWithPayLater = async (
       },
     },
   });
+  if (doctorSchedule.isBooked) {
+    throw new Error("This appointment schedule is already booked");
+  }
   const videoCallingId = String(uuidv7());
 
   const result = await prisma.$transaction(async (tx) => {
@@ -143,17 +151,19 @@ const bookAppointmentWithPayLater = async (
         videoCallingId,
       },
     });
-    await tx.doctorSchedule.update({
+    const scheduleClaim = await tx.doctorSchedule.updateMany({
       where: {
-        doctorId_scheduleId: {
-          doctorId: payload.doctorId,
-          scheduleId: payload.scheduleId,
-        },
+        doctorId: payload.doctorId,
+        scheduleId: payload.scheduleId,
+        isBooked: false,
       },
       data: {
         isBooked: true,
       },
     });
+    if (scheduleClaim.count !== 1) {
+      throw new Error("This appointment schedule is already booked");
+    }
 
     const transactionId = String(uuidv7());
     const paymentData = await tx.payment.create({
@@ -189,7 +199,15 @@ const initiatePayment = async (appointmentId: string, user: IRequestUser) => {
     throw new Error("Payment already completed for this appointment");
   }
   if (!appointmentData.payment) {
-    throw new Error("No payment record found for this appointment");
+    appointmentData.payment = await prisma.payment.upsert({
+      where: { appointmentId: appointmentData.id },
+      create: {
+        appointmentId: appointmentData.id,
+        amount: appointmentData.doctor.appointmentFee,
+        transactionId: String(uuidv7()),
+      },
+      update: {},
+    });
   }
   if (appointmentData.status === AppointmentStatus.CANCELLED) {
     throw new Error("Payment has been cancelled for this appointment");
@@ -217,6 +235,12 @@ const initiatePayment = async (appointmentId: string, user: IRequestUser) => {
     success_url: `${envVar.FRONTEND_URL}/dashboard/payment/payment-success?appointmentId=${appointmentData.id}&paymentId=${appointmentData.payment.id}`,
     cancel_url: `${envVar.FRONTEND_URL}/dashboard/payment`,
   });
+
+  return {
+    paymentUrl: session.url,
+    appointment: appointmentData,
+    payment: appointmentData.payment,
+  };
 };
 
 //cancel appointment
@@ -284,6 +308,7 @@ const getMyAppointments = async (user: IRequestUser) => {
       include: {
         doctor: true,
         schedule: true,
+        payment: true,
       },
     });
   } else if (doctorData) {
@@ -292,6 +317,7 @@ const getMyAppointments = async (user: IRequestUser) => {
       include: {
         patient: true,
         schedule: true,
+        payment: true,
       },
     });
   } else {
@@ -304,10 +330,10 @@ const getMySingleAppointment = async (
   appointmentId: string,
   user: IRequestUser,
 ) => {
-  const patientData = await prisma.patient.findUniqueOrThrow({
+  const patientData = await prisma.patient.findUnique({
     where: { userId: user.id },
   });
-  const doctorData = await prisma.doctor.findUniqueOrThrow({
+  const doctorData = await prisma.doctor.findUnique({
     where: { userId: user.id },
   });
   let appointment;
@@ -320,6 +346,7 @@ const getMySingleAppointment = async (
       include: {
         doctor: true,
         schedule: true,
+        payment: true,
       },
     });
   } else if (doctorData) {
@@ -331,6 +358,7 @@ const getMySingleAppointment = async (
       include: {
         patient: true,
         schedule: true,
+        payment: true,
       },
     });
   } else {
